@@ -16,13 +16,15 @@ func main() {
 		log.Fatalf("failed to load .env")
 	}
 
-	host := os.Getenv("HTTP_SERVER")
-	if host == "" {
+	port := os.Getenv("PORT")
+	if port == "" {
 		log.Fatalf("host is undefined")
 	}
 
-	// TODO: Init logger (slog)
-	// TODO: Init storage (go-mongo-model)
+	// TODO: init logger (slog)
+
+	// TODO: init mongo connection
+	// TODO: init redis connection
 
 	router := chi.NewRouter()
 
@@ -32,7 +34,7 @@ func main() {
 	})
 
 	// create app instance
-	app := app.NewApp(router, host)
+	app := app.NewApp(router, port)
 
 	app.Run()
 }

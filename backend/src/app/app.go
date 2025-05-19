@@ -10,10 +10,10 @@ import (
 
 type App struct {
 	router *chi.Mux
-	addr   string
+	port   string
 }
 
-func NewApp(router *chi.Mux, host string) *App {
+func NewApp(router *chi.Mux, port string) *App {
 	master := chi.NewRouter()
 
 	// use some middleware stack
@@ -30,15 +30,15 @@ func NewApp(router *chi.Mux, host string) *App {
 
 	app := &App{
 		router: master,
-		addr:   host,
+		port:   port,
 	}
 
 	return app
 }
 
 func (a *App) Run() {
-	fmt.Printf("server started on address %s\n", a.addr)
-	if err := http.ListenAndServe(a.addr, a.router); err != nil {
+	fmt.Printf("server started on address %s\n", a.port)
+	if err := http.ListenAndServe(":"+a.port, a.router); err != nil {
 		fmt.Printf("error occurred %s\n", err.Error())
 	}
 }

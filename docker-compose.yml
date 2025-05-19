@@ -1,0 +1,51 @@
+# version: "3.8"
+
+services:
+  redis:
+    container_name: tracker-redis
+    image: redis:6.2
+    ports:
+      - '9000:9000'
+    command: ["redis-server", "--save", "60", "3", "--port", "9000"]
+    volumes:
+      - ./redis:/usr/local/etc/redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "9000", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mongo:
+    container_name: tracker-mongod
+    image: mongo:6.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "tracker"
+      MONGO_INITDB_ROOT_PASSWORD: "type_tracker"
+    ports:
+      - '7000:27017'
+    volumes:
+      - ./mongo:/data/db
+    
+  backend:
+    container_name: tracker-backend
+    build:
+      context: ./backend
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - mongo
+      - redis
+    command: ["air"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f localhost:8000/api/ping | grep pong"]
+      interval: 2s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+
+  # frontend:
+  #   profile: ["no-run"]
+    # TODO

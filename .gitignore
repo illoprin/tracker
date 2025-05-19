@@ -1,2 +1,6 @@
 backend/vendor
 backend/docs/*_PROMTS.*
+backend/tmp
+
+redis
+mongo
