@@ -2,5 +2,7 @@ backend/vendor
 backend/docs/*_PROMTS.*
 backend/tmp
 
+frontend/node_modules
+
 redis
 mongo
