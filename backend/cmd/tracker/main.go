@@ -2,37 +2,37 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"tracker-backend/internal/app"
-	"tracker-backend/internal/env"
-	mng "tracker-backend/internal/lib/repository/mongod"
-	"tracker-backend/internal/service"
+	"tracker-backend/internal/app/setup"
+	"tracker-backend/internal/config"
+	"tracker-backend/internal/pkg/repository"
 )
 
 func main() {
-	cfg := env.MustLoadConfig()
+	cfg := config.MustLoadConfig()
 
 	// TODO: init logger (slog)
 
 	// create empty context
 	ctx := context.TODO()
 
-	mongoClient, err := mng.NewMongoClient(ctx, cfg.MongoURL, cfg.MongoDBName)
+	// create mongodb connection
+	mongoClient, err := repository.NewMongoClient(ctx, cfg.MongoURL, cfg.MongoDBName)
 	if err != nil {
 		log.Fatalf("failed to connect mongodb %s", err.Error())
 	}
-	defer func() {
-		err := mongoClient.Disconnect(ctx)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}()
+	defer mongoClient.Disconnect(ctx)
 
-	// TODO: init redis connection
+	// create redis connection
+	redisClient, err := repository.NewRedisClient(ctx, cfg.RedisHost, cfg.RedisPort)
+	if err != nil {
+		log.Fatalf("failed to connect redis %s", err.Error())
+	}
+	defer redisClient.Close()
 
 	// init dependencies
-	deps := service.InitDependencies(ctx, mongoClient.Database, cfg)
+	deps := setup.InitDependencies(ctx, mongoClient.Database, cfg)
 
 	// create app instance
 	app := app.NewApp(cfg.Port, deps)

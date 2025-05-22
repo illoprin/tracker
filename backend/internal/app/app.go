@@ -3,8 +3,8 @@ package app
 import (
 	"fmt"
 	"net/http"
-	"tracker-backend/internal/router"
-	"tracker-backend/internal/service"
+	"tracker-backend/internal/app/setup"
+	"tracker-backend/internal/server"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,7 +15,7 @@ type App struct {
 	port   string
 }
 
-func NewApp(port string, deps *service.Dependencies) *App {
+func NewApp(port string, deps *setup.Dependencies) *App {
 	master := chi.NewRouter()
 
 	// use some middleware stack
@@ -26,7 +26,7 @@ func NewApp(port string, deps *service.Dependencies) *App {
 	// TODO: add access to public data
 
 	// mount user routes
-	master.Mount("/api", router.NewAppRouter(deps))
+	master.Mount("/api", server.NewAppRouter(deps))
 
 	// TODO: generate and mount swagger docs
 
