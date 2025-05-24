@@ -58,7 +58,14 @@ func (h *ArtistHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *ArtistHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(auth.UserIDKey).(string)
+
+	// get url ID param
 	artistID := chi.URLParam(r, "id")
+	if artistID == "" {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("missing artist id"))
+		return
+	}
 
 	if err := h.Service.Delete(ctx, artistID, userID); err != nil {
 		render.Status(r, http.StatusNotFound)
@@ -72,7 +79,14 @@ func (h *ArtistHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *ArtistHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(auth.UserIDKey).(string)
+
+	// get url ID param
 	artistID := chi.URLParam(r, "id")
+	if artistID == "" {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("missing artist id"))
+		return
+	}
 
 	var req UpdateRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
@@ -99,7 +113,14 @@ func (h *ArtistHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *ArtistHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	// get url ID param
 	artistID := chi.URLParam(r, "id")
+	if artistID == "" {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("missing artist id"))
+		return
+	}
 
 	artist, err := h.Service.GetByID(ctx, artistID)
 	if err != nil {

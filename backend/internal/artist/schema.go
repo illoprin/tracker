@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// Artist представляет документ исполнителя в MongoDB.
 type Artist struct {
 	ID         string    `bson:"id" json:"id"`
 	Name       string    `bson:"name" json:"name"`

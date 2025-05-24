@@ -1,12 +1,14 @@
-package file
+package uploadfile
 
 import (
 	"errors"
 	"io"
 	"mime/multipart"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"tracker-backend/internal/config"
 
 	"github.com/google/uuid"
 )
@@ -17,14 +19,25 @@ var (
 )
 
 const (
-	maxFileSize = 5 << 20 // 5MB
+	maxFileSize = 10 << 20  // 10MB
+	BufferSize  = 32 * 1024 // 32KB
 )
+
+func GetFullPath(
+	uploadPath string,
+) string {
+	return path.Join(
+		os.Getenv(config.PublicDirPathEnvName),
+		uploadPath,
+	)
+}
 
 // UploadFile saves file on server and returns path to file
 func UploadFile(
 	fileHeader *multipart.FileHeader,
-	uploadDir string,
-	allowedExt map[string]bool,
+	file *multipart.File,
+	uploadDir string, // full upload path
+	allowedExt map[string]bool, // allowed extensions
 ) (string, error) {
 	// check size
 	if fileHeader.Size > maxFileSize {
@@ -46,13 +59,14 @@ func UploadFile(
 	newFileName := uuid.New().String() + ext
 	filePath := filepath.Join(uploadDir, newFileName)
 
-	// save file
+	// open file
 	src, err := fileHeader.Open()
 	if err != nil {
 		return "", err
 	}
-	defer src.Close()
+	defer src.Close() // close file after saving
 
+	// create file on server
 	dst, err := os.Create(filePath)
 	if err != nil {
 		return "", err

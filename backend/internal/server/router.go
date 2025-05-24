@@ -12,7 +12,7 @@ import (
 func NewAppRouter(deps *setup.Dependencies) *chi.Mux {
 	router := chi.NewRouter()
 	router.Get("/ping", HandlePing)
-	authMiddleware := middleware.Authorization(deps.UserService, deps.UserService.JwtSecret)
+	authMiddleware := middleware.Authorization(deps.UserService)
 
 	user.RegisterUserRoutes(router, deps.UserService, authMiddleware)
 	artist.RegisterArtistRoutes(router, deps.ArtistService, authMiddleware)

@@ -24,8 +24,11 @@ func NewUserService(ctx context.Context, db *mongo.Database, jwtSecret string) *
 	// create collection
 	col := db.Collection("users")
 
-	// create unique indices
-	EnsureIndexes(ctx, col)
+	// create indices
+	err := EnsureIndexes(ctx, col)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	return &UserService{
 		Col:       col,

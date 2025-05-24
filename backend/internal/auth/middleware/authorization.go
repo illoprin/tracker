@@ -3,14 +3,16 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"os"
 	"tracker-backend/internal/auth"
+	"tracker-backend/internal/config"
 	"tracker-backend/internal/pkg/response"
 
 	"github.com/go-chi/render"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func Authorization(userProvider auth.UserProvider, jwtSecret string) MiddlewareFunc {
+func Authorization(userProvider auth.UserProvider) MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// get authorization header
@@ -26,7 +28,7 @@ func Authorization(userProvider auth.UserProvider, jwtSecret string) MiddlewareF
 
 			// parse token
 			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-				return []byte(jwtSecret), nil
+				return []byte(os.Getenv(config.JWTSecretEnvName)), nil
 			})
 
 			// check token validness
