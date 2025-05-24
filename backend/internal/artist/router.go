@@ -24,6 +24,7 @@ func RegisterArtistRoutes(r chi.Router, service *ArtistService, authMiddleware m
 			r.Use(authMiddleware)
 
 			r.Put("/{id}", h.Update)
+			r.Put("/{id}/avatar", h.UpdateAvatar)
 			r.Delete("/{id}", h.Delete)
 		})
 

@@ -23,5 +23,5 @@ func RegisterAlbumRoutes(
 		})
 		r.Get("/{id}", h.GetByID)
 	})
-	router.Get("/artist/{id}/album", h.GetByArtistID)
+	router.Get("/artist/{id}/albums", h.GetByArtistID)
 }

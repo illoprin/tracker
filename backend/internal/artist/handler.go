@@ -95,6 +95,12 @@ func (h *ArtistHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.AvatarPath != nil {
+		render.Status(r, http.StatusMethodNotAllowed)
+		render.JSON(w, r, response.Error("use PUT /api/artist/{id}/avatar to update artist avatar"))
+		return
+	}
+
 	artist, err := h.Service.Update(ctx, artistID, userID, req)
 	// check update results
 	if err != nil {
@@ -103,6 +109,47 @@ func (h *ArtistHandler) Update(w http.ResponseWriter, r *http.Request) {
 		} else if err == ErrNotFound {
 			render.Status(r, http.StatusNotFound)
 		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// send updated artist
+	render.JSON(w, r, artist)
+}
+
+func (h *ArtistHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(auth.UserIDKey).(string)
+
+	// get url ID param
+	artistID := chi.URLParam(r, "id")
+	if artistID == "" {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("missing artist id"))
+		return
+	}
+
+	// parse form data
+	err := r.ParseMultipartForm(5 << 20) // 5MB
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("failed to parse multipart form"))
+	}
+
+	// extract form file
+	file, fileHeader, err := r.FormFile("avatar")
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("failed to extract file"))
+		return
+	}
+
+	// call update function
+	artist, err := h.Service.UpdateAvatar(
+		ctx, userID, artistID, &file, fileHeader,
+	)
+	if err != nil {
+		render.Status(r, http.StatusNotFound)
 		render.JSON(w, r, response.Error(err.Error()))
 		return
 	}

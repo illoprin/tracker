@@ -7,7 +7,7 @@ func RegisterTrackRoutes(r chi.Router, s *TrackService) {
 
 	r.Route("/track", func(r chi.Router) {
 		r.Post("/", h.Create)
-		r.Get("/stream/{id}", h.StreamTrack)
+		r.Get("/{id}/stream", h.StreamTrack)
 		r.Get("/{id}", h.GetByID)
 	})
 }

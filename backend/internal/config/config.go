@@ -9,3 +9,9 @@ const (
 	JWTSecretEnvName     string = "SECRET"
 	PublicDirPathEnvName string = "PUBLIC_PATH"
 )
+
+const (
+	AudioDir   string = "audio"
+	AvatarsDir string = "avatars"
+	CoversDir  string = "covers"
+)

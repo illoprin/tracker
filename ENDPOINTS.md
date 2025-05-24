@@ -22,13 +22,44 @@
 
 ### Artist
 
-| Endpoint              | Description        | Requirements                       |
-| --------------------- | ------------------ | ---------------------------------- |
-| GET `/artist/{id}`    | Get artist         |                                    |
-| POST `/artist`        | Create new artist  | Authorization Token, CreateRequest |
-| GET `/artist/my`      | Get user's artists | Authorization Token                |
-| PUT `/artist/{id}`    | Update artist      | UpdateRequest Authorization Token  |
-| DELETE `/artist/{id}` | Delete artist      | Authorization Token                |
+| Endpoint                  | Description          | Requirements                             |
+| ------------------------- | -------------------- | ---------------------------------------- |
+| GET `/artist/{id}`        | Get artist           |                                          |
+| POST `/artist`            | Create new artist    | Authorization Token, CreateRequest       |
+| GET `/artist/my`          | Get user's artists   | Authorization Token                      |
+| PUT `/artist/{id}`        | Update artist        | UpdateRequest, Authorization Token       |
+| PUT `/artist/{id}/avatar` | Update artist avatar | FormData, Authorization Token, Ownership |
+| DELETE `/artist/{id}`     | Delete artist        | Authorization Token, Ownership           |
+
+### Album
+
+| Endpoint                 | Description        | Requirements                   |
+| ------------------------ | ------------------ | ------------------------------ |
+| POST `/track`            | Upload new track   | Authorization Token            |
+| GET `/track/{id}`        | Get track metadata |                                |
+| GET `/track/{id}/stream` | Stream track       |                                |
+| DELETE `/track/{id}`     | Delete track       | Authorization Token, Ownership |
+| PUT `/track/{id}`        | Update track       | Authorization Token, Ownership |
+
+### Track
+
+| Endpoint                 | Description        | Requirements                   | Status          |
+| ------------------------ | ------------------ | ------------------------------ | --------------- |
+| POST `/track`            | Upload new track   | Authorization Token            |                 |
+| GET `/track/{id}`        | Get track metadata |                                |                 |
+| GET `/track/{id}/stream` | Stream track       |                                |                 |
+| DELETE `/track/{id}`     | Delete track       | Authorization Token, Ownership | Not Implemented |
+| PUT `/track/{id}`        | Update track       | Authorization Token, Ownership | Not Implemented |
+
+### Album
+
+| Endpoint                  | Description         | Requirements                   |
+| ------------------------- | ------------------- | ------------------------------ |
+| POST `/album`             | Create new album    | Authorization Token            |
+| GET `/album/{id}`         | Get track metadata  |                                |
+| GET `/artist/{id}/albums` | Get artist's albums |                                |
+| DELETE `/album/{id}`      | Delete album        | Authorization Token, Ownership |
+| PUT `/album/{id}`         | Update album        | Authorization Token, Ownership |
 
 ## Models
 
@@ -51,6 +82,7 @@
 #### Token
 
 Token payload contains json
+
 ```json
 {
   "id": String,
@@ -116,6 +148,75 @@ Token payload contains json
 ```json
 {
   "name"?: String,
-  "avatarPath"?: String,
+}
+```
+
+#### Update avatar Form Data
+
+```http
+avatar: file
+```
+
+### Track
+
+#### Schema
+
+```json
+{
+  "id": StringUUID,
+  "title": String,
+  "duration": Int,
+  "genres": []String,
+  "audioFile": String, // file name
+  "albumID": StringUUID,
+  "createdAt": ISO8601Date
+}
+```
+
+#### Create Form Data
+
+```http
+title: string
+genre: []string
+albumId: stringUUID
+audio: audio/wav,audio/m4a,audio/mp3
+```
+
+### Album
+
+#### Schema
+
+```json
+{
+  "id": StringUUID,
+  "title": String,
+  "artistID": StringUUID,
+  "year": Int,
+  "coverPath": String, // path to cover file
+  "genres": []String,
+  "status": enum('Public', 'Hidden', 'OnModeration'),
+  "createdAt": ISO8601Date
+}
+```
+
+#### Create request
+
+```json
+{
+  "title": String,
+  "artistID": StringUUID,
+  "year": Int,
+  "genres": []String
+}
+```
+
+#### Update request
+
+```json
+{
+  "title": String,
+  "status": enum('Public', 'Hidden'),
+  "year": Int,
+  "genres": []String
 }
 ```

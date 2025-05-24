@@ -23,8 +23,11 @@ type Track struct {
 func EnsureIndexes(ctx context.Context, col *mongo.Collection) error {
 	// unique index by name and album id
 	nameAlbumIndex := mongo.IndexModel{
-		Keys:    bson.M{"name": 1, "album": 1},
-		Options: options.Index().SetUnique(true).SetName("name_album_unique"),
+		Keys: bson.D{
+			{Key: "title", Value: 1},
+			{Key: "album", Value: 1},
+		},
+		Options: options.Index().SetUnique(true).SetName("title_album_unique"),
 	}
 
 	_, err := col.Indexes().CreateOne(ctx, nameAlbumIndex)

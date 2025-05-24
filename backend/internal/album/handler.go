@@ -13,6 +13,8 @@ type AlbumHandler struct {
 
 func NewAlbumHandler(s *AlbumService) *AlbumHandler {
 	v := validator.New()
+	v.RegisterValidation("status", ValidateStatus)
+	v.RegisterValidation("year", ValidateYear)
 
 	return &AlbumHandler{
 		Service:   s,

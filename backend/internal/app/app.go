@@ -3,7 +3,10 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path"
 	"tracker-backend/internal/app/setup"
+	"tracker-backend/internal/config"
 	"tracker-backend/internal/server"
 
 	"github.com/go-chi/chi/v5"
@@ -23,9 +26,17 @@ func NewApp(port string, deps *setup.Dependencies) *App {
 	master.Use(middleware.RealIP)
 	master.Use(middleware.Recoverer)
 
-	// TODO: add access to public data
+	// permit access to public images
+	avatarsFS := http.FileServer(http.Dir(
+		path.Join(os.Getenv(config.PublicDirPathEnvName), config.AvatarsDir),
+	))
+	coversFS := http.FileServer(http.Dir(
+		path.Join(os.Getenv(config.PublicDirPathEnvName), config.CoversDir),
+	))
+	master.Handle("/public/avatars/*", http.StripPrefix("/public/avatars/", avatarsFS))
+	master.Handle("/public/covers/*", http.StripPrefix("/public/covers/", coversFS))
 
-	// mount user routes
+	// mount api routes
 	master.Mount("/api", server.NewAppRouter(deps))
 
 	// TODO: generate and mount swagger docs

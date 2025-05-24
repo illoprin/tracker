@@ -47,6 +47,7 @@ func (h *UserHandler) Register(
 		return
 	}
 
+	// FIX: use User.ToResponse function
 	render.Status(r, http.StatusCreated)
 	render.JSON(w, r, user)
 }
@@ -91,6 +92,7 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// FIX: use User.ToResponse function
 	render.JSON(w, r, user)
 }
 
@@ -132,6 +134,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// FIX: use User.ToResponse function
 	// send updated user
 	render.JSON(w, r, user)
 }

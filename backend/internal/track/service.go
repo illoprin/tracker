@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"mime/multipart"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
+	"tracker-backend/internal/config"
 	uploadfile "tracker-backend/internal/pkg/file"
 
 	"github.com/google/uuid"
@@ -22,25 +24,16 @@ var (
 	ErrUndefinedAlbum   = errors.New("related album is undefined")
 )
 
-var (
-	allowedExtensions = map[string]bool{
-		".mp3": true,
-		".wav": true,
-		".m4a": true,
-	}
-)
-
 type TrackService struct {
 	Collection      *mongo.Collection
 	AlbumCollection *mongo.Collection
-	uploadPath      string
 }
 
-// NewService создает новый сервис для работы с треками
-func NewTrackService(ctx context.Context, db *mongo.Database, uploadPath string) *TrackService {
+// NewService creates new service for tracks
+func NewTrackService(ctx context.Context, db *mongo.Database) *TrackService {
 	// create collections
 	col := db.Collection("tracks")
-	albumCol := db.Collection("album")
+	albumCol := db.Collection("albums")
 
 	// create indices
 	err := EnsureIndexes(ctx, col)
@@ -51,12 +44,11 @@ func NewTrackService(ctx context.Context, db *mongo.Database, uploadPath string)
 	return &TrackService{
 		Collection:      col,
 		AlbumCollection: albumCol,
-		uploadPath:      uploadPath,
 	}
 }
 
-// CreateTrack creates new track and creates file
-func (s *TrackService) CreateTrack(
+// Create creates new track and creates file
+func (s *TrackService) Create(
 	ctx context.Context,
 	req *CreateTrackRequest,
 	audioFile *multipart.File,
@@ -70,19 +62,19 @@ func (s *TrackService) CreateTrack(
 	}
 
 	// check file type
-	if err := uploadfile.ValidateFile(fileHeader, allowedExtensions); err != nil {
+	if err := uploadfile.ValidateFile(fileHeader, uploadfile.AllowedAudioExtensions); err != nil {
 		return nil, ErrInvalidFileType
 	}
 
-	// TODO: define duration and audio path
-	filePath := uploadfile.GetFullPath(s.uploadPath)
+	// create file path
+	filePath := path.Join(os.Getenv(config.PublicDirPathEnvName), config.AudioDir)
+	// upload file
 	audioFilePath, err := uploadfile.UploadFile(
 		fileHeader,
 		audioFile,
 		filePath,
-		allowedExtensions,
+		uploadfile.AllowedAudioExtensions,
 	)
-	duration := req.Duration
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +84,7 @@ func (s *TrackService) CreateTrack(
 		ID:        uuid.NewString(),
 		Title:     req.Title,
 		Genre:     req.Genre,
-		Duration:  duration,
+		Duration:  req.Duration,
 		AudioFile: audioFilePath,
 		AlbumID:   req.AlbumID,
 		CreatedAt: time.Now(),
@@ -109,8 +101,8 @@ func (s *TrackService) CreateTrack(
 	return track, nil
 }
 
-// GetTrackByID get track document by id
-func (s *TrackService) GetTrackByID(
+// GetByID get track document by id
+func (s *TrackService) GetByID(
 	ctx context.Context, id string,
 ) (*Track, error) {
 	var track Track
@@ -125,15 +117,16 @@ func (s *TrackService) GetTrackByID(
 	return &track, nil
 }
 
-// GetTrackFilePath returns full file path to track
-func (s *TrackService) GetTrackFilePath(ctx context.Context, id string) (string, error) {
-	track, err := s.GetTrackByID(ctx, id)
+// GetFilePathByID returns full file path to track
+func (s *TrackService) GetFilePathByID(ctx context.Context, id string) (string, error) {
+	track, err := s.GetByID(ctx, id)
 	if err != nil {
 		return "", err
 	}
 
 	filePath := filepath.Join(
-		uploadfile.GetFullPath(s.uploadPath),
+		os.Getenv(config.PublicDirPathEnvName),
+		config.AudioDir,
 		track.AudioFile,
 	)
 

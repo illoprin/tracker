@@ -4,7 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime/multipart"
+	"os"
+	"path"
+	"strings"
 	"time"
+	"tracker-backend/internal/config"
+	uploadfile "tracker-backend/internal/pkg/file"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -46,7 +52,7 @@ func (s *ArtistService) Create(
 		ID:         uuid.New().String(),
 		Name:       req.Name,
 		UserID:     userID,
-		AvatarPath: "/upload/avatar_default.jpg",
+		AvatarPath: "public/avatars/avatar_default.jpg",
 		CreatedAt:  time.Now(),
 	}
 
@@ -79,7 +85,7 @@ func (s *ArtistService) Delete(
 	return nil
 }
 
-// updates artists name and avatarPath
+// updates artist name
 func (s *ArtistService) Update(
 	ctx context.Context,
 	artistID string, userID string,
@@ -124,6 +130,62 @@ func (s *ArtistService) Update(
 		return nil, err
 	}
 	return &artist, nil
+}
+
+func (s *ArtistService) UpdateAvatar(
+	ctx context.Context,
+	userID string, artistID string,
+	file *multipart.File, fileHeader *multipart.FileHeader,
+) (*Artist, error) {
+	// validate file
+	if err := uploadfile.ValidateFile(fileHeader, uploadfile.AllowedImageExtensions); err != nil {
+		return nil, err
+	}
+	filter := bson.M{"userID": userID, "id": artistID}
+
+	// find artist and decode
+	var artist Artist
+	err := s.Col.FindOne(ctx, filter).Decode(&artist)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	// check avatar file path
+	if !strings.Contains(artist.AvatarPath, "avatar_default") {
+		// delete old one
+		if _, err := os.Stat(artist.AvatarPath); err == nil {
+			if err := os.Remove(artist.AvatarPath); err != nil {
+				return nil, fmt.Errorf("failed to delete old file")
+			}
+		}
+	}
+
+	// upload new file
+	fileDir := path.Join(os.Getenv(config.PublicDirPathEnvName), config.AvatarsDir)
+	newFilePath, err := uploadfile.UploadFile(fileHeader, file, fileDir, uploadfile.AllowedImageExtensions)
+	if err != nil {
+		return nil, err
+	}
+
+	// create new update data
+	update := bson.M{"avatarPath": newFilePath}
+
+	var updatedArtist Artist
+	err = s.Col.FindOneAndUpdate(
+		ctx,
+		filter,
+		bson.M{"$set": update},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&updatedArtist)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to update")
+	}
+
+	return &updatedArtist, nil
 }
 
 // returns artist by id

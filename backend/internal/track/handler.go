@@ -66,7 +66,7 @@ func (h *TrackHandler) Create(w http.ResponseWriter, r *http.Request) {
 	defer audioFile.Close()
 
 	// create track document and save file
-	track, err := h.service.CreateTrack(r.Context(), req, &audioFile, fileHeader)
+	track, err := h.service.Create(r.Context(), req, &audioFile, fileHeader)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error(err.Error()))
@@ -87,7 +87,7 @@ func (h *TrackHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	track, err := h.service.GetTrackByID(ctx, trackID)
+	track, err := h.service.GetByID(ctx, trackID)
 	if err != nil {
 		if err == ErrNotFound {
 			render.Status(r, http.StatusBadRequest)
@@ -113,7 +113,7 @@ func (h *TrackHandler) StreamTrack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get file path
-	filePath, err := h.service.GetTrackFilePath(ctx, trackID)
+	filePath, err := h.service.GetFilePathByID(ctx, trackID)
 	if err != nil {
 		if err == ErrNotFound {
 			render.Status(r, http.StatusNotFound)

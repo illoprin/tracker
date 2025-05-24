@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"os"
+	"tracker-backend/internal/album"
 	"tracker-backend/internal/artist"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/track"
@@ -15,6 +16,7 @@ type Dependencies struct {
 	UserService   *user.UserService
 	ArtistService *artist.ArtistService
 	TrackService  *track.TrackService
+	AlbumService  *album.AlbumService
 }
 
 func InitDependencies(
@@ -25,11 +27,13 @@ func InitDependencies(
 		os.Getenv(config.JWTSecretEnvName),
 	)
 	artistService := artist.NewArtistService(ctx, db)
-	trackService := track.NewTrackService(ctx, db, "audio")
+	albumService := album.NewAlbumService(ctx, db)
+	trackService := track.NewTrackService(ctx, db)
 
 	return &Dependencies{
 		UserService:   userService,
 		ArtistService: artistService,
 		TrackService:  trackService,
+		AlbumService:  albumService,
 	}
 }

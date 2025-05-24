@@ -33,8 +33,6 @@ var validRoles = map[string]bool{
 }
 
 func ValidateRole(fl validator.FieldLevel) bool {
-	if role, ok := fl.Field().Interface().(string); ok {
-		return validRoles[role]
-	}
-	return false
+	role := fl.Field().String()
+	return validRoles[role]
 }

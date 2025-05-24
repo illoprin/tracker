@@ -5,32 +5,32 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
-	"tracker-backend/internal/config"
 
 	"github.com/google/uuid"
 )
 
 var (
-	ErrInvalidFileType = errors.New("invalid file type")
-	ErrFileTooLarge    = errors.New("file size exceeds 5MB")
+	ErrInvalidFileType     = errors.New("invalid file type")
+	ErrFileTooLarge        = errors.New("file size exceeds 5MB")
+	AllowedImageExtensions = map[string]bool{
+		".jpeg": true,
+		".png":  true,
+		".jpg":  true,
+		".webp": true,
+	}
+	AllowedAudioExtensions = map[string]bool{
+		".mp3": true,
+		".wav": true,
+		".m4a": true,
+	}
 )
 
 const (
-	maxFileSize = 10 << 20  // 10MB
+	maxFileSize = 30 << 20  // 30MB
 	BufferSize  = 32 * 1024 // 32KB
 )
-
-func GetFullPath(
-	uploadPath string,
-) string {
-	return path.Join(
-		os.Getenv(config.PublicDirPathEnvName),
-		uploadPath,
-	)
-}
 
 // UploadFile saves file on server and returns path to file
 func UploadFile(
