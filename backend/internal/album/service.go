@@ -26,20 +26,14 @@ var (
 	ErrNotFound   = errors.New("album not found")
 )
 
-func NewAlbumService(ctx context.Context, db *mongo.Database) *AlbumService {
-	col := db.Collection("albums")
-
-	err := EnsureIndexes(ctx, col)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	artistCol := db.Collection("artists")
-	ownership := ownership.NewOwnershipService(artistCol, col)
+func NewAlbumService(
+	albumsCol *mongo.Collection,
+	ownershipService *ownership.OwnershipService,
+) *AlbumService {
 
 	return &AlbumService{
-		Col:              col,
-		ownershipService: ownership,
+		Col:              albumsCol,
+		ownershipService: ownershipService,
 	}
 }
 
@@ -230,6 +224,16 @@ func (s *AlbumService) GetByID(
 		return nil, err
 	}
 	return &album, nil
+}
+
+func (s *AlbumService) CheckExistence(ctx context.Context, albumID string) (bool, error) {
+	if a, err := s.GetByID(ctx, albumID); a == nil {
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	}
+	return true, nil
 }
 
 func (s *AlbumService) Delete(

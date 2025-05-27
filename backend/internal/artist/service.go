@@ -28,17 +28,8 @@ type ArtistService struct {
 }
 
 // NewArtistService new artist service instance
-func NewArtistService(ctx context.Context, db *mongo.Database) *ArtistService {
-	// create collection
-	col := db.Collection("artists")
-
-	// create indices
-	err := EnsureIndexes(ctx, col)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return &ArtistService{Col: col}
+func NewArtistService(artistCol *mongo.Collection) *ArtistService {
+	return &ArtistService{Col: artistCol}
 }
 
 // Create new artist from CreateRequest

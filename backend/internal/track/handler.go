@@ -34,6 +34,10 @@ func NewTrackHandler(service *TrackService) *TrackHandler {
 
 // CreateTrack обрабатывает загрузку нового трека
 func (h *TrackHandler) Create(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	userID := ctx.Value(auth.UserIDKey).(string)
+
 	// parse multipart form
 	err := r.ParseMultipartForm(32 << 20) // 32MB максимум
 	if err != nil {
@@ -68,7 +72,7 @@ func (h *TrackHandler) Create(w http.ResponseWriter, r *http.Request) {
 	defer audioFile.Close()
 
 	// create track document and save file
-	track, err := h.service.Create(r.Context(), req, &audioFile, fileHeader)
+	track, err := h.service.Create(ctx, userID, req, &audioFile, fileHeader)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error(err.Error()))

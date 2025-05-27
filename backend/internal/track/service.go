@@ -28,29 +28,24 @@ var (
 )
 
 type TrackService struct {
-	Collection       *mongo.Collection
+	Col              *mongo.Collection
 	ownershipService *ownership.OwnershipService
-	AlbumCollection  *mongo.Collection
+	AlbumChecker
+}
+
+type AlbumChecker interface {
+	CheckExistence(ctx context.Context, albumID string) (bool, error)
 }
 
 // NewService creates new service for tracks
-func NewTrackService(ctx context.Context, db *mongo.Database) *TrackService {
-	// create collections
-	col := db.Collection("tracks")
-	albumCol := db.Collection("albums")
-
-	// create indices
-	err := EnsureIndexes(ctx, col)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// create ownership service
-	ownershipService := ownership.NewOwnershipService(db.Collection("artists"), albumCol)
-
+func NewTrackService(
+	tracksCollection *mongo.Collection,
+	ownershipService *ownership.OwnershipService,
+	albumChecker AlbumChecker,
+) *TrackService {
 	return &TrackService{
-		Collection:       col,
-		AlbumCollection:  albumCol,
+		Col:              tracksCollection,
+		AlbumChecker:     albumChecker,
 		ownershipService: ownershipService,
 	}
 }
@@ -58,6 +53,7 @@ func NewTrackService(ctx context.Context, db *mongo.Database) *TrackService {
 // Create creates new track and creates file
 func (s *TrackService) Create(
 	ctx context.Context,
+	userID string,
 	req *CreateTrackRequest,
 	audioFile *multipart.File,
 	fileHeader *multipart.FileHeader,
@@ -66,9 +62,19 @@ func (s *TrackService) Create(
 	logger := slog.With(slog.String("function", "track.TrackService.Create"))
 
 	// check album existence
-	err := s.AlbumCollection.FindOne(ctx, bson.M{"id": req.AlbumID}).Err()
-	if err != nil {
-		return nil, ErrUndefinedAlbum
+	if exists, err := s.AlbumChecker.CheckExistence(ctx, req.AlbumID); !exists {
+		if err != nil {
+			return nil, errors.New("failed to check album existence")
+		}
+		return nil, errors.New("album not found")
+	}
+
+	// check album owner
+	if isOwn, err := s.ownershipService.IsAlbumOwner(ctx, userID, req.AlbumID); !isOwn {
+		if err != nil {
+			return nil, errors.New("failed to check album owner")
+		}
+		return nil, auth.ErrAccessDenied
 	}
 
 	// check file type
@@ -102,7 +108,7 @@ func (s *TrackService) Create(
 	}
 
 	// insert to collection
-	_, err = s.Collection.InsertOne(ctx, track)
+	_, err = s.Col.InsertOne(ctx, track)
 	if err != nil {
 		logger.Error("failed to insert", slog.String("error", err.Error()))
 		// delete related file if error occurred
@@ -130,7 +136,7 @@ func (s *TrackService) GetByID(
 	_ = logger
 
 	var track Track
-	err := s.Collection.FindOne(ctx, bson.M{"id": id}).Decode(&track)
+	err := s.Col.FindOne(ctx, bson.M{"id": id}).Decode(&track)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
@@ -187,7 +193,7 @@ func (s *TrackService) Delete(
 
 	// find document
 	var track Track
-	if err := s.Collection.FindOne(ctx, bson.M{"id": id}).Decode(&track); err != nil {
+	if err := s.Col.FindOne(ctx, bson.M{"id": id}).Decode(&track); err != nil {
 		return errors.New("failed to find")
 	}
 
@@ -198,7 +204,7 @@ func (s *TrackService) Delete(
 	}
 
 	// remove document
-	res, err := s.Collection.DeleteOne(ctx, bson.M{"id": id})
+	res, err := s.Col.DeleteOne(ctx, bson.M{"id": id})
 	if err != nil {
 		return errors.New("failed to remove")
 	}

@@ -18,23 +18,19 @@ var (
 )
 
 func NewPlaylistService(
-	ctx context.Context, db *mongo.Database,
+	playlistCol *mongo.Collection,
 ) *PlaylistService {
-	col := db.Collection("playlists")
-
-	err := EnsureIndexes(ctx, col)
-	if err != nil {
-		panic(err.Error())
-	}
-
 	return &PlaylistService{
-		Col: col,
+		Col: playlistCol,
 	}
 }
 
 func (s *PlaylistService) Create(
 	ctx context.Context, req PlaylistCreateRequest,
 ) (*Playlist, error) {
+	// configure logger
+	logger := slog.With(slog.String("function", "playlist.PlaylistService.Create"))
+
 	playlist := &Playlist{
 		ID:        uuid.NewString(),
 		Name:      req.Name,
@@ -49,7 +45,7 @@ func (s *PlaylistService) Create(
 		return nil, errors.New("failed to insert")
 	}
 
-	slog.Info("playlist created",
+	logger.Info("playlist created",
 		slog.Group("info",
 			slog.String("userID", req.UserID),
 			slog.Bool("isDefault", req.IsDefault),

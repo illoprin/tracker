@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"tracker-backend/internal/app/setup"
+	"tracker-backend/internal/app/dependencies"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/server"
 
@@ -18,7 +18,7 @@ type App struct {
 	port   string
 }
 
-func NewApp(port string, deps *setup.Dependencies) *App {
+func NewApp(port string, deps *dependencies.Dependencies) *App {
 	master := chi.NewRouter()
 
 	// use some middleware stack

@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 	"tracker-backend/internal/app"
-	"tracker-backend/internal/app/setup"
+	"tracker-backend/internal/app/dependencies"
+	"tracker-backend/internal/app/repository"
 	"tracker-backend/internal/config"
-	"tracker-backend/internal/pkg/repository"
+	"tracker-backend/internal/pkg/storage"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 	ctx := context.TODO()
 
 	// create mongodb connection
-	mongoClient, err := repository.NewMongoClient(
+	mongoClient, err := storage.NewMongoClient(
 		ctx,
 		os.Getenv(config.MongoURLEnvName),
 		os.Getenv(config.MongoDBNameEnvName),
@@ -29,8 +30,11 @@ func main() {
 	}
 	defer mongoClient.Disconnect(ctx)
 
+	// create repository
+	repo := repository.MustInitRepository(ctx, mongoClient.Database)
+
 	// create redis connection
-	redisClient, err := repository.NewRedisClient(
+	redisClient, err := storage.NewRedisClient(
 		ctx,
 		os.Getenv(config.RedisHostEnvName),
 		os.Getenv(config.RedisPortEnvName),
@@ -41,7 +45,7 @@ func main() {
 	defer redisClient.Close()
 
 	// init dependencies
-	deps := setup.InitDependencies(ctx, mongoClient.Database)
+	deps := dependencies.InitDependencies(ctx, repo)
 
 	// create app instance
 	app := app.NewApp(

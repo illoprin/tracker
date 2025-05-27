@@ -15,7 +15,7 @@ type OwnershipService struct {
 	albumsCol  *mongo.Collection
 }
 
-func NewOwnershipService(artistsCol, albumsCol *mongo.Collection) *OwnershipService {
+func NewOwnershipService(albumsCol *mongo.Collection, artistsCol *mongo.Collection) *OwnershipService {
 	return &OwnershipService{
 		albumsCol:  albumsCol,
 		artistsCol: artistsCol,

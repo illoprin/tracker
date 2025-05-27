@@ -27,18 +27,14 @@ type UserService struct {
 	pc        PlaylistCreator
 }
 
-func NewUserService(ctx context.Context, db *mongo.Database, jwtSecret string, pc PlaylistCreator) *UserService {
-	// create collection
-	col := db.Collection("users")
-
-	// create indices
-	err := EnsureIndexes(ctx, col)
-	if err != nil {
-		panic(err.Error())
-	}
-
+func NewUserService(
+	ctx context.Context,
+	usersCol *mongo.Collection,
+	jwtSecret string,
+	pc PlaylistCreator,
+) *UserService {
 	return &UserService{
-		Col:       col,
+		Col:       usersCol,
 		JwtSecret: jwtSecret,
 		pc:        pc,
 	}
