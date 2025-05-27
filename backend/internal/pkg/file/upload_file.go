@@ -32,7 +32,7 @@ const (
 	BufferSize  = 32 * 1024 // 32KB
 )
 
-// UploadFile saves file on server and returns path to file
+// UploadFile saves file on server and returns full path to file
 func UploadFile(
 	fileHeader *multipart.FileHeader,
 	file *multipart.File,

@@ -3,6 +3,7 @@ package track
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 
+	"tracker-backend/internal/auth"
 	uploadfile "tracker-backend/internal/pkg/file"
 	"tracker-backend/internal/pkg/response"
 )
@@ -146,7 +148,7 @@ func (h *TrackHandler) StreamTrack(w http.ResponseWriter, r *http.Request) {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	contentType := uploadfile.GetAudioContentTypeByExtension(ext)
 
-	// Устанавливаем заголовки
+	// set necessary headers
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
 	w.Header().Set("Accept-Ranges", "bytes")
@@ -164,7 +166,7 @@ func (h *TrackHandler) StreamTrack(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// log the error, but do not send the response
 		// because the headers have already been sent.
-		fmt.Printf("Error streaming file: %v\n", err)
+		slog.Error("error streaming file", slog.String("error", err.Error()))
 	}
 }
 
@@ -174,8 +176,17 @@ func (h *TrackHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TrackHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	// delete entry
-	// delete file
+	ctx := r.Context()
+	userID := ctx.Value(auth.UserIDKey).(string)
+	trackID := chi.URLParam(r, "id")
+
+	err := h.service.Delete(ctx, trackID, userID)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error(err.Error()))
+	}
+
+	render.Status(r, http.StatusNoContent)
 }
 
 // handleRangeRequest обрабатывает запросы с заголовком Range

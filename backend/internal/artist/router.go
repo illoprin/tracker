@@ -1,12 +1,12 @@
 package artist
 
 import (
-	"tracker-backend/internal/auth/middleware"
+	"tracker-backend/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisterArtistRoutes(r chi.Router, service *ArtistService, authMiddleware middleware.MiddlewareFunc) {
+func RegisterArtistRoutes(r chi.Router, service *ArtistService, authMiddleware auth.MiddlewareFunc) {
 	h := NewArtistHandler(service)
 
 	r.Route("/artist", func(r chi.Router) {

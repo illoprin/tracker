@@ -29,7 +29,7 @@ const (
 func EnsureIndexes(
 	ctx context.Context, col *mongo.Collection,
 ) error {
-	index := mongo.IndexModel{
+	artistIDTitleIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "artistID", Value: 1},
 			{Key: "title", Value: 1},
@@ -37,6 +37,12 @@ func EnsureIndexes(
 		Options: options.Index().SetUnique(true),
 	}
 
-	_, err := col.Indexes().CreateOne(ctx, index)
+	// unique index by id string
+	idIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "id", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("id_unique"),
+	}
+
+	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{artistIDTitleIndex, idIndex})
 	return err
 }

@@ -30,6 +30,12 @@ func EnsureIndexes(ctx context.Context, col *mongo.Collection) error {
 		Options: options.Index().SetUnique(true).SetName("title_album_unique"),
 	}
 
-	_, err := col.Indexes().CreateOne(ctx, nameAlbumIndex)
+	// unique index by id string
+	idIndex := mongo.IndexModel{
+		Keys:    bson.D{{Key: "id", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("id_unique"),
+	}
+
+	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{nameAlbumIndex, idIndex})
 	return err
 }

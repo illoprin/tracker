@@ -27,6 +27,7 @@ type ArtistService struct {
 	Col *mongo.Collection
 }
 
+// NewArtistService new artist service instance
 func NewArtistService(ctx context.Context, db *mongo.Database) *ArtistService {
 	// create collection
 	col := db.Collection("artists")
@@ -40,7 +41,7 @@ func NewArtistService(ctx context.Context, db *mongo.Database) *ArtistService {
 	return &ArtistService{Col: col}
 }
 
-// creates new artist
+// Create new artist from CreateRequest
 func (s *ArtistService) Create(
 	ctx context.Context, userID string, req CreateRequest,
 ) (*Artist, error) {
@@ -67,7 +68,7 @@ func (s *ArtistService) Create(
 	return artist, nil
 }
 
-// deletes artist
+// Delete deletes artist
 func (s *ArtistService) Delete(
 	ctx context.Context, artistID, userID string,
 ) error {
@@ -85,7 +86,7 @@ func (s *ArtistService) Delete(
 	return nil
 }
 
-// updates artist name
+// Update updates artist name
 func (s *ArtistService) Update(
 	ctx context.Context,
 	artistID string, userID string,
@@ -124,7 +125,7 @@ func (s *ArtistService) Update(
 	).Decode(&artist)
 
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
 		}
 		return nil, err
@@ -132,6 +133,7 @@ func (s *ArtistService) Update(
 	return &artist, nil
 }
 
+// UpdateAvatar updates artist avatar from form file
 func (s *ArtistService) UpdateAvatar(
 	ctx context.Context,
 	userID string, artistID string,
@@ -147,7 +149,7 @@ func (s *ArtistService) UpdateAvatar(
 	var artist Artist
 	err := s.Col.FindOne(ctx, filter).Decode(&artist)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNotFound
 		}
 		return nil, err
@@ -188,7 +190,7 @@ func (s *ArtistService) UpdateAvatar(
 	return &updatedArtist, nil
 }
 
-// returns artist by id
+// GetByID returns artist by id
 func (s *ArtistService) GetByID(
 	ctx context.Context, artistID string,
 ) (*Artist, error) {
@@ -200,19 +202,19 @@ func (s *ArtistService) GetByID(
 	return &artist, nil
 }
 
-// returns all artists by userID
+// GetByUserID returns all artists by userID
 func (s *ArtistService) GetByUserID(
 	ctx context.Context, userID string,
 ) ([]Artist, error) {
 	cursor, err := s.Col.Find(ctx, bson.M{"userID": userID})
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to find matches")
 	}
 	defer cursor.Close(ctx)
 
 	var artists []Artist
 	if err := cursor.All(ctx, &artists); err != nil {
-		return nil, err
+		return nil, errors.New("failed to parse result")
 	}
 	return artists, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type AlbumRequest struct {
+type AlbumResponse struct {
 	ID        string   `json:"id"`
 	Title     string   `json:"title"`
 	ArtistID  string   `json:"artistID"`
@@ -19,15 +19,15 @@ type AlbumRequest struct {
 
 type AlbumCreateRequest struct {
 	Title    string   `json:"title" validate:"required,min=3,max=255"`
-	Year     string   `json:"year" validate:"required,year"`
+	Year     int      `json:"year" validate:"required,year"`
 	Genres   []string `json:"genres" validate:"required,len=1"`
 	ArtistID string   `json:"artistID" validate:"required,uuid4"`
 }
 
 type AlbumUpdateRequest struct {
-	Title  string   `json:"title" validate:"omitempty,min=3,max=255"`
-	Year   string   `json:"year" validate:"omitempty,year"`
-	Status string   `json:"status" validate:"omitempty,status"`
+	Title  *string  `json:"title" validate:"omitempty,min=3,max=255"`
+	Year   *int     `json:"year" validate:"omitempty,year"`
+	Status *string  `json:"status" validate:"omitempty,status"`
 	Genres []string `json:"genres" validate:"required,len=1"`
 }
 
@@ -48,8 +48,8 @@ func ValidateStatus(fl validator.FieldLevel) bool {
 	return statusValidation[status]
 }
 
-func (a *Album) ToResponse() *AlbumRequest {
-	return &AlbumRequest{
+func (a *Album) ToResponse() *AlbumResponse {
+	return &AlbumResponse{
 		ID:        a.ID,
 		Title:     a.Title,
 		ArtistID:  a.ArtistID,

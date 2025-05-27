@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 	authService "tracker-backend/internal/auth"
 	auth "tracker-backend/internal/pkg/authorization"
+	"tracker-backend/internal/playlist"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -15,12 +17,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type PlaylistCreator interface {
+	Create(context.Context, playlist.PlaylistCreateRequest) (*playlist.Playlist, error)
+}
+
 type UserService struct {
 	Col       *mongo.Collection
 	JwtSecret string
+	pc        PlaylistCreator
 }
 
-func NewUserService(ctx context.Context, db *mongo.Database, jwtSecret string) *UserService {
+func NewUserService(ctx context.Context, db *mongo.Database, jwtSecret string, pc PlaylistCreator) *UserService {
 	// create collection
 	col := db.Collection("users")
 
@@ -33,6 +40,7 @@ func NewUserService(ctx context.Context, db *mongo.Database, jwtSecret string) *
 	return &UserService{
 		Col:       col,
 		JwtSecret: jwtSecret,
+		pc:        pc,
 	}
 }
 
@@ -52,8 +60,6 @@ func (s *UserService) Register(
 	if err != nil {
 		return nil, fmt.Errorf("error while hashing password")
 	}
-
-	// TODO: create user playlist
 
 	// create user schema
 	user := &User{
@@ -77,13 +83,25 @@ func (s *UserService) Register(
 				if strings.Contains(we.Message, "login") {
 					return nil, ErrLoginTaken
 				}
-				// password constraint error
+				// email constraint error
 				if strings.Contains(we.Message, "email") {
 					return nil, ErrEmailTaken
 				}
 			}
 		}
 		return nil, err
+	}
+
+	// create default playlist
+	defaultPlaylist := playlist.PlaylistCreateRequest{
+		Name:      "Мой выбор",
+		UserID:    user.ID,
+		IsPublic:  false,
+		IsDefault: true,
+	}
+	_, err = s.pc.Create(ctx, defaultPlaylist)
+	if err != nil {
+		return user, errors.New("failed to create default playlist")
 	}
 
 	return user, nil
@@ -104,6 +122,8 @@ func (s *UserService) Login(
 		[]byte(credentials.Password)); err != nil {
 		return "", ErrForbidden
 	}
+
+	slog.Info("user authorized", slog.String("id", user.ID))
 
 	return auth.CreateTokenFromUser(
 		user.ID, user.Role, user.Email, s.JwtSecret,

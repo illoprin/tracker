@@ -1,12 +1,12 @@
 package user
 
 import (
-	"tracker-backend/internal/auth/middleware"
+	"tracker-backend/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisterUserRoutes(r chi.Router, service *UserService, authMiddleware middleware.MiddlewareFunc) {
+func RegisterUserRoutes(r chi.Router, service *UserService, authMiddleware auth.MiddlewareFunc) {
 	h := NewUserHandler(service)
 
 	r.Route("/user", func(r chi.Router) {
