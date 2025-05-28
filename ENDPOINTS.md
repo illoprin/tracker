@@ -16,6 +16,12 @@
 | ---------------------------- | ------------------------------ | ------------ | --------------- |
 | GET `/resource/search?query` | Search tracks, albums, artists |              | Not Implemented |
 
+### Genre
+
+| Endpoint      | Description            | Requirements |
+| ------------- | ---------------------- | ------------ |
+| GET `/genres` | Get all allowed genres |              |
+
 ### User
 
 | Endpoint                 | Description           | Requirements                        |
@@ -103,7 +109,7 @@ Token payload contains json
 {
   "id": String,
   "email": String,
-  "role": enum("Admin", "Moderator", "Customer"),
+  "role": Int,
 }
 ```
 

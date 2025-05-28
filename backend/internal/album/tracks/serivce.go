@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	albumType "tracker-backend/internal/album/type"
 	"tracker-backend/internal/auth/ownership"
 	"tracker-backend/internal/pkg/service"
 	"tracker-backend/internal/track"
@@ -44,6 +45,18 @@ func (s *AlbumTracksService) GetTracksByID(
 			return nil, service.ErrNotFound
 		}
 		return nil, errors.New("failed to check album existence")
+	}
+
+	// if user is not owner of album and its status 'OnModeration' or it is hidden
+	if isOwn, err := s.ownershipService.IsAlbumOwner(ctx, userID, albumID); !isOwn {
+		if err != nil {
+			return nil, errors.New("failed to check owner")
+		}
+		var albumDecoded albumType.Album
+		res.Decode(&albumDecoded)
+		if albumDecoded.Status == albumType.StatusOnModeration || albumDecoded.IsHidden {
+			return nil, service.ErrAccessDenied
+		}
 	}
 
 	// find tracks

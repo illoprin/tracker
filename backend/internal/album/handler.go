@@ -4,6 +4,7 @@ import (
 	"net/http"
 	albumType "tracker-backend/internal/album/type"
 	"tracker-backend/internal/auth"
+	genreType "tracker-backend/internal/genre/type"
 	"tracker-backend/internal/pkg/response"
 
 	"github.com/go-chi/chi/v5"
@@ -20,6 +21,7 @@ func NewAlbumHandler(s *AlbumService) *AlbumHandler {
 	v := validator.New()
 	v.RegisterValidation("status", albumType.ValidateStatus)
 	v.RegisterValidation("year", albumType.ValidateYear)
+	v.RegisterValidation("genres", genreType.ValidateGenres)
 
 	return &AlbumHandler{
 		Service:   s,

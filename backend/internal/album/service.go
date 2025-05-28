@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	albumType "tracker-backend/internal/album/type"
 	"tracker-backend/internal/auth/ownership"
+	"tracker-backend/internal/config"
 	uploadfile "tracker-backend/internal/pkg/file"
 	"tracker-backend/internal/pkg/service"
 
@@ -59,6 +62,12 @@ func (s *AlbumService) Create(
 		return nil, service.ErrAccessDenied
 	}
 
+	coverPath := filepath.Join(
+		os.Getenv(config.PublicDirPathEnvName),
+		config.CoversDir,
+		"cover_default.jpg",
+	)
+
 	// album is hidden by default
 	album := &albumType.Album{
 		ID:        uuid.NewString(),
@@ -66,6 +75,7 @@ func (s *AlbumService) Create(
 		ArtistID:  req.ArtistID,
 		Year:      req.Year,
 		Genres:    req.Genres,
+		CoverPath: coverPath,
 		Status:    albumType.StatusModerated,
 		IsHidden:  true,
 		CreatedAt: time.Now(),

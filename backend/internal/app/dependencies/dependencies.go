@@ -27,7 +27,7 @@ func InitDependencies(
 	ctx context.Context, repo *repository.Repository,
 ) *Dependencies {
 	ownershipService := ownership.NewOwnershipService(
-		repo.ArtistsCollection, repo.ArtistsCollection,
+		repo.AlbumsCollection, repo.ArtistsCollection,
 	)
 
 	playlistService := playlist.NewPlaylistService(repo.PlaylistsCollection)
@@ -35,7 +35,7 @@ func InitDependencies(
 		ctx, repo.UsersCollection,
 		playlistService,
 	)
-	artistAlbumsService := artistAlbums.NewArtistAlbumsService(repo.AlbumsCollection)
+	artistAlbumsService := artistAlbums.NewArtistAlbumsService(repo.AlbumsCollection, ownershipService)
 	artistService := artist.NewArtistService(repo.ArtistsCollection)
 	albumTracksService := albumTracks.NewAlbumTracksService(repo.TracksCollection, repo.AlbumsCollection, ownershipService)
 	albumService := album.NewAlbumService(repo.AlbumsCollection, albumTracksService, ownershipService)

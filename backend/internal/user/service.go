@@ -11,6 +11,7 @@ import (
 	authService "tracker-backend/internal/auth"
 	"tracker-backend/internal/config"
 	auth "tracker-backend/internal/pkg/authorization"
+	"tracker-backend/internal/pkg/service"
 	playlistType "tracker-backend/internal/playlist/type"
 	userType "tracker-backend/internal/user/type"
 
@@ -43,8 +44,6 @@ func NewUserService(
 var (
 	ErrEmailTaken = errors.New("email already in use")
 	ErrLoginTaken = errors.New("login already in use")
-	ErrNotFound   = errors.New("user not found")
-	ErrForbidden  = errors.New("access denied")
 )
 
 func (s *UserService) Register(
@@ -123,12 +122,12 @@ func (s *UserService) Login(
 	err := s.Col.FindOne(ctx, bson.M{"login": credentials.Login}).Decode(&user)
 
 	if err != nil {
-		return "", ErrNotFound
+		return "", service.ErrNotFound
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash),
 		[]byte(credentials.Password)); err != nil {
-		return "", ErrForbidden
+		return "", service.ErrAccessDenied
 	}
 
 	logger.Info("user authorized", slog.String("id", user.ID))
@@ -145,20 +144,20 @@ func (s *UserService) GetByID(
 	err := s.Col.FindOne(ctx, bson.M{"id": id}).Decode(&user)
 
 	if err != nil {
-		return nil, ErrNotFound
+		return nil, service.ErrNotFound
 	}
 
 	return &user, nil
 }
 
 func (s *UserService) GetAuthDTOByID(
-	ctx context.Context, id string, role string,
+	ctx context.Context, id string, role int,
 ) (*authService.AuthUser, error) {
 	var user authService.AuthUser
 	err := s.Col.FindOne(ctx, bson.M{"id": id, "role": role}).Decode(&user)
 
 	if err != nil {
-		return nil, ErrNotFound
+		return nil, service.ErrNotFound
 	}
 
 	return &user, nil
@@ -184,7 +183,7 @@ func (s *UserService) Update(
 	}
 	if req.Role != nil {
 		if !allowed {
-			return nil, ErrForbidden
+			return nil, service.ErrAccessDenied
 		} else {
 			update["role"] = *req.Role
 		}
@@ -216,6 +215,9 @@ func (s *UserService) Update(
 	// update
 	_, err := s.Col.UpdateOne(ctx, filter, bson.M{"$set": update})
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, service.ErrNotFound
+		}
 		return nil, fmt.Errorf("updating user: %w", err)
 	}
 
@@ -230,7 +232,7 @@ func (s *UserService) Delete(
 ) error {
 	res, err := s.Col.DeleteOne(ctx, bson.M{"id": id})
 	if res.DeletedCount < 1 {
-		return ErrNotFound
+		return service.ErrNotFound
 	}
 	return err
 }

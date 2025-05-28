@@ -1,5 +1,6 @@
+/api-test
 backend/vendor
-backend/docs/*_PROMPT.*
+backend/docs
 backend/tmp
 
 frontend/node_modules

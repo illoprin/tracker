@@ -57,6 +57,7 @@ func (s *TrackService) Create(
 	// check album existence
 	if exists, err := s.AlbumChecker.CheckExistence(ctx, req.AlbumID); !exists {
 		if err != nil {
+			logger.Warn("failed to check album existence", slog.String("error", err.Error()))
 			return nil, errors.New("failed to check album existence")
 		}
 		return nil, service.ErrNotFound
@@ -95,7 +96,7 @@ func (s *TrackService) Create(
 		Title:     req.Title,
 		Genre:     req.Genre,
 		Duration:  req.Duration,
-		AudioFile: audioFilePath,
+		AudioFile: filepath.Base(audioFilePath),
 		AlbumID:   req.AlbumID,
 		CreatedAt: time.Now(),
 	}

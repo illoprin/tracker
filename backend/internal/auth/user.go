@@ -5,7 +5,7 @@ import "context"
 type AuthUser struct {
 	ID    string `bson:"id"`
 	Email string `bson:"email"`
-	Role  string `bson:"role"`
+	Role  int    `bson:"role"`
 }
 
 const (
@@ -15,5 +15,5 @@ const (
 )
 
 type UserProvider interface {
-	GetAuthDTOByID(ctx context.Context, id string, role string) (*AuthUser, error)
+	GetAuthDTOByID(ctx context.Context, id string, role int) (*AuthUser, error)
 }

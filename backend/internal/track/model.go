@@ -3,9 +3,9 @@ package track
 // CreateTrackRequest represents a request to create a new track
 type CreateTrackRequest struct {
 	Title    string   `json:"title" validate:"required,min=1,max=128"`
-	Genre    []string `json:"genre" validate:"required,min=1"`
+	Genre    []string `json:"genre" validate:"required,genre"`
 	Duration int      `json:"duration" validate:"required,min=10"`
-	AlbumID  string   `json:"albumId" validate:"uuid4"`
+	AlbumID  string   `json:"albumID" validate:"required,uuid4"`
 }
 
 // TrackResponse represents a response with track information
@@ -15,7 +15,7 @@ type TrackResponse struct {
 	Duration  int      `json:"duration"`
 	Genre     []string `json:"genre"`
 	AudioFile string   `json:"audioFile"`
-	AlbumID   string   `json:"albumId"`
+	AlbumID   string   `json:"albumID"`
 	CreatedAt string   `json:"createdAt"`
 }
 

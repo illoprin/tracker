@@ -1,6 +1,7 @@
 package track
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"tracker-backend/internal/auth"
+	genreType "tracker-backend/internal/genre/type"
 	uploadfile "tracker-backend/internal/pkg/file"
 	"tracker-backend/internal/pkg/response"
 	"tracker-backend/internal/pkg/service"
@@ -27,9 +29,12 @@ type TrackHandler struct {
 
 // NewTrackHandler создает новый обработчик для треков
 func NewTrackHandler(service *TrackService) *TrackHandler {
+	v := validator.New()
+	v.RegisterValidation("genre", genreType.ValidateGenres)
+
 	return &TrackHandler{
 		service:   service,
-		validator: validator.New(),
+		validator: v,
 	}
 }
 
@@ -48,10 +53,18 @@ func (h *TrackHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create request from form data
+	genres := strings.Split(r.FormValue("genre"), ",")
+	duration, err := strconv.Atoi(r.FormValue("duration"))
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("failed to get duration"))
+	}
+
 	req := &CreateTrackRequest{
-		Title:   r.FormValue("title"),
-		Genre:   strings.Split(r.FormValue("title"), ","),
-		AlbumID: r.FormValue("albumId"),
+		Title:    r.FormValue("title"),
+		Genre:    genres,
+		AlbumID:  r.FormValue("albumID"),
+		Duration: duration,
 	}
 
 	// validate request
@@ -75,7 +88,13 @@ func (h *TrackHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// create track document and save file
 	track, err := h.service.Create(ctx, userID, req, &audioFile, fileHeader)
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
+		if errors.Is(err, service.ErrAccessDenied) {
+			render.Status(r, http.StatusForbidden)
+		} else if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusBadRequest)
+		}
 		render.JSON(w, r, response.Error(err.Error()))
 		return
 	}

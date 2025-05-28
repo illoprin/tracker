@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	albumType "tracker-backend/internal/album/type"
+	"tracker-backend/internal/auth"
+	"tracker-backend/internal/auth/ownership"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -11,19 +13,22 @@ import (
 )
 
 type ArtistAlbumsService struct {
-	albumsCol *mongo.Collection
+	albumsCol        *mongo.Collection
+	ownershipService *ownership.OwnershipService
 }
 
 func NewArtistAlbumsService(
 	albumsCol *mongo.Collection,
+	ownershipSrv *ownership.OwnershipService,
 ) *ArtistAlbumsService {
 	return &ArtistAlbumsService{
-		albumsCol: albumsCol,
+		albumsCol:        albumsCol,
+		ownershipService: ownershipSrv,
 	}
 }
 
 func (s *ArtistAlbumsService) GetByArtistID(
-	ctx context.Context, artistID string,
+	ctx context.Context, artistID string, userID string, userRole int,
 ) ([]albumType.Album, error) {
 
 	findOptions := options.Find().SetSort(bson.D{
@@ -31,7 +36,18 @@ func (s *ArtistAlbumsService) GetByArtistID(
 		{Key: "title", Value: -1},
 	})
 
-	cursor, err := s.albumsCol.Find(ctx, bson.M{"artistID": artistID}, findOptions)
+	filter := bson.M{
+		"artistID": artistID,
+	}
+	isOwn, err := s.ownershipService.IsArtistOwner(ctx, userID, artistID)
+
+	// if user is not moderator -> show only moderated and public albums
+	if userRole <= auth.RoleCustomer && !isOwn {
+		filter["isHidden"] = false
+		filter["status"] = albumType.StatusModerated
+	}
+
+	cursor, err := s.albumsCol.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, errors.New("failed to find albums")
 	}

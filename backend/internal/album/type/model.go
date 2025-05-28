@@ -21,7 +21,7 @@ type AlbumResponse struct {
 type AlbumCreateRequest struct {
 	Title    string   `json:"title" validate:"required,min=3,max=255"`
 	Year     int      `json:"year" validate:"required,year"`
-	Genres   []string `json:"genres" validate:"required,len=1"`
+	Genres   []string `json:"genres" validate:"required,genres"`
 	ArtistID string   `json:"artistID" validate:"required,uuid4"`
 }
 
@@ -29,7 +29,7 @@ type AlbumUpdateRequest struct {
 	Title  *string  `json:"title" validate:"omitempty,min=3,max=255"`
 	Year   *int     `json:"year" validate:"omitempty,year"`
 	Status *string  `json:"status" validate:"omitempty,status"`
-	Genres []string `json:"genres" validate:"required,len=1"`
+	Genres []string `json:"genres" validate:"required,genres"`
 }
 
 var (

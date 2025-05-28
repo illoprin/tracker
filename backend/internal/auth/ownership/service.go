@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	artistType "tracker-backend/internal/artist/type"
+	"tracker-backend/internal/pkg/service"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -62,6 +63,8 @@ func (s *OwnershipService) IsAlbumOwner(ctx context.Context, userID, albumID str
 	}
 	defer cursor.Close(ctx)
 
+	logger.Info("cursor length", "length", cursor.RemainingBatchLength())
+
 	var result struct {
 		Matches int `bson:"matches"`
 	}
@@ -70,6 +73,7 @@ func (s *OwnershipService) IsAlbumOwner(ctx context.Context, userID, albumID str
 			logger.Warn("failed to decode", slog.String("error", err.Error()))
 			return false, err
 		}
+		logger.Info("decoded cursor", "result", result)
 		// check matches and return result
 		return result.Matches > 0, nil
 	}
@@ -94,7 +98,7 @@ func (s *OwnershipService) IsArtistOwner(
 	if err != nil {
 		logger.Warn("failed to findone", slog.String("error", err.Error()))
 		if err == mongo.ErrNoDocuments {
-			return false, errors.New("artist not found")
+			return false, service.ErrNotFound
 		}
 		return false, errors.New("failed to find artist")
 	}

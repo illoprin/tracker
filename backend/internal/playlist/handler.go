@@ -77,3 +77,15 @@ func (h *PlaylistHandler) RemoveTrack(w http.ResponseWriter, r *http.Request) {
 
 	render.JSON(w, r, updated)
 }
+
+func (h *PlaylistHandler) MyPlaylists(w http.ResponseWriter, r *http.Request) {
+	// get user context key
+	// execute service function
+	// return result
+}
+
+func (h *PlaylistHandler) Tracks(w http.ResponseWriter, r *http.Request) {
+	// get user context key
+	// execute service function
+	// return result
+}

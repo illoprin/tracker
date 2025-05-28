@@ -1,9 +1,11 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/pkg/response"
+	"tracker-backend/internal/pkg/service"
 	userType "tracker-backend/internal/user/type"
 
 	"github.com/go-chi/render"
@@ -68,9 +70,9 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.Service.Login(r.Context(), req)
 	if err != nil {
-		if err == ErrNotFound {
+		if errors.Is(err, service.ErrNotFound) {
 			render.Status(r, http.StatusNotFound)
-		} else if err == ErrForbidden {
+		} else if errors.Is(err, service.ErrAccessDenied) {
 			render.Status(r, http.StatusForbidden)
 		}
 		render.JSON(w, r, response.Error(err.Error()))
@@ -122,10 +124,13 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// check update results
 	user, err := h.Service.Update(r.Context(), userID, req, allowed)
 	if err != nil {
-		if err == ErrForbidden {
+		if errors.Is(err, service.ErrAccessDenied) {
 			render.Status(r, http.StatusForbidden)
 			render.JSON(w, r, response.Error("role changing not allowed"))
 			return
+		} else if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+			render.JSON(w, r, response.Error(err.Error()))
 		} else {
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error(err.Error()))

@@ -14,9 +14,11 @@ func RegisterAlbumRoutes(
 	authMiddleware auth.MiddlewareFunc,
 ) {
 	h := NewAlbumHandler(albumSvc)
+	ht := albumTracks.NewAlbumTracksHandler(albumTracksSvc)
 
 	router.Route("/album", func(r chi.Router) {
 		r.Use(authMiddleware)
+		r.Get("/{id}/tracks", ht.GetAlbumTracks)
 
 		r.Group(func(mr chi.Router) {
 			mr.Use(authMiddleware)
