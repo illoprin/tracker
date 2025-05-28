@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	playlistType "tracker-backend/internal/playlist/type"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -26,12 +27,12 @@ func NewPlaylistService(
 }
 
 func (s *PlaylistService) Create(
-	ctx context.Context, req PlaylistCreateRequest,
-) (*Playlist, error) {
+	ctx context.Context, req playlistType.PlaylistCreateRequest,
+) (*playlistType.Playlist, error) {
 	// configure logger
 	logger := slog.With(slog.String("function", "playlist.PlaylistService.Create"))
 
-	playlist := &Playlist{
+	playlist := &playlistType.Playlist{
 		ID:        uuid.NewString(),
 		Name:      req.Name,
 		UserID:    req.UserID,
@@ -54,4 +55,32 @@ func (s *PlaylistService) Create(
 	)
 
 	return playlist, nil
+}
+
+func (s *PlaylistService) PushTrack(
+	ctx context.Context, playlistID string, trackID string,
+) error {
+	// check playlist existence
+
+	// check track existence
+
+	// update entry
+
+	// return updated playlist
+
+	return nil
+}
+
+func (s *PlaylistService) RemoveTrack(
+	ctx context.Context, playlistID string, trackID string,
+) error {
+	// check playlist existence
+
+	// check track existence
+
+	// update entry
+
+	// return updated playlist
+
+	return nil
 }

@@ -20,8 +20,8 @@ type TrackResponse struct {
 }
 
 // ToResponse converts Track to TrackResponse
-func (t *Track) ToResponse() *TrackResponse {
-	return &TrackResponse{
+func (t *Track) ToResponse() TrackResponse {
+	return TrackResponse{
 		ID:        t.ID,
 		Title:     t.Title,
 		Duration:  t.Duration,

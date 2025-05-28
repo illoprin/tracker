@@ -16,7 +16,7 @@ func NewAppRouter(deps *dependencies.Dependencies) *chi.Mux {
 	authMiddleware := middleware.Authorization(deps.UserService)
 
 	user.RegisterUserRoutes(router, deps.UserService, authMiddleware)
-	artist.RegisterArtistRoutes(router, deps.ArtistService, authMiddleware)
+	artist.RegisterArtistRoutes(router, deps.ArtistService, deps.ArtistAlbumsService, authMiddleware)
 	album.RegisterAlbumRoutes(router, deps.AlbumService, authMiddleware)
 
 	return router

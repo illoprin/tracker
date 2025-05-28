@@ -1,4 +1,4 @@
-package artist
+package artistType
 
 import (
 	"context"

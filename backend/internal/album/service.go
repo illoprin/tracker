@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"strings"
 	"time"
+	albumType "tracker-backend/internal/album/type"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/auth/ownership"
 	uploadfile "tracker-backend/internal/pkg/file"
@@ -18,7 +19,12 @@ import (
 
 type AlbumService struct {
 	Col              *mongo.Collection
+	trackChecker     TrackChecker
 	ownershipService *ownership.OwnershipService
+}
+
+type TrackChecker interface {
+	IsAnyTracksInAlbum(ctx context.Context, albumID string) (bool, error)
 }
 
 var (
@@ -28,11 +34,13 @@ var (
 
 func NewAlbumService(
 	albumsCol *mongo.Collection,
+	trackChecker TrackChecker,
 	ownershipService *ownership.OwnershipService,
 ) *AlbumService {
 
 	return &AlbumService{
 		Col:              albumsCol,
+		trackChecker:     trackChecker,
 		ownershipService: ownershipService,
 	}
 }
@@ -40,8 +48,8 @@ func NewAlbumService(
 func (s *AlbumService) Create(
 	ctx context.Context,
 	userID string,
-	req *AlbumCreateRequest,
-) (*Album, error) {
+	req *albumType.AlbumCreateRequest,
+) (*albumType.Album, error) {
 
 	// validate artist ownership first (you need to implement this check)
 	isOwn, err := s.ownershipService.IsArtistOwner(ctx, userID, req.ArtistID)
@@ -49,17 +57,17 @@ func (s *AlbumService) Create(
 		return nil, errors.New("failed to check ownership")
 	}
 	if !isOwn {
-		return nil, errors.New("user doesn't own this artist")
+		return nil, auth.ErrAccessDenied
 	}
 
 	// album is hidden by default
-	album := &Album{
+	album := &albumType.Album{
 		ID:        uuid.NewString(),
 		Title:     req.Title,
 		ArtistID:  req.ArtistID,
 		Year:      req.Year,
 		Genres:    req.Genres,
-		Status:    StatusHidden,
+		Status:    albumType.StatusHidden,
 		CreatedAt: time.Now(),
 	}
 
@@ -80,7 +88,7 @@ func (s *AlbumService) UpdateCover(
 	albumID string,
 	file *multipart.File,
 	fileHeader *multipart.FileHeader,
-) (*Album, error) {
+) (*albumType.Album, error) {
 
 	isOwner, err := s.ownershipService.IsAlbumOwner(ctx, userID, albumID)
 	if err != nil {
@@ -107,7 +115,7 @@ func (s *AlbumService) UpdateCover(
 	}
 
 	update := bson.M{"$set": bson.M{"coverPath": coverPath}}
-	var updatedAlbum Album
+	var updatedAlbum albumType.Album
 	err = s.Col.FindOneAndUpdate(
 		ctx,
 		filter,
@@ -126,8 +134,8 @@ func (s *AlbumService) Update(
 	ctx context.Context,
 	userID string,
 	albumID string,
-	req *AlbumUpdateRequest,
-) (*Album, error) {
+	req *albumType.AlbumUpdateRequest,
+) (*albumType.Album, error) {
 	isOwner, err := s.ownershipService.IsAlbumOwner(ctx, userID, albumID)
 	if err != nil {
 		return nil, errors.New("failed check album ownership")
@@ -164,7 +172,7 @@ func (s *AlbumService) Update(
 	// album change pipeline:
 	// change/creation -> moderation -> publication
 
-	var album Album
+	var album albumType.Album
 	err = s.Col.FindOneAndUpdate(ctx,
 		filter, bson.M{"$set": updates},
 		options.FindOneAndUpdate().SetReturnDocument(options.After),
@@ -190,32 +198,10 @@ func (s *AlbumService) Update(
 	return &album, nil
 }
 
-func (s *AlbumService) GetByArtistID(
-	ctx context.Context, artistID string,
-) ([]Album, error) {
-
-	findOptions := options.Find().SetSort(bson.D{
-		{Key: "createdAt", Value: -1},
-		{Key: "title", Value: -1},
-	})
-
-	cursor, err := s.Col.Find(ctx, bson.M{"artistID": artistID}, findOptions)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	var albums []Album
-	if err := cursor.All(ctx, &albums); err != nil {
-		return nil, err
-	}
-	return albums, nil
-}
-
 func (s *AlbumService) GetByID(
 	ctx context.Context, albumID string,
-) (*Album, error) {
-	var album Album
+) (*albumType.Album, error) {
+	var album albumType.Album
 	err := s.Col.FindOne(ctx, bson.M{"id": albumID}).Decode(&album)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {

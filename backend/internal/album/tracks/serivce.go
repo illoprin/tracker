@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"tracker-backend/internal/album"
+	albumType "tracker-backend/internal/album/type"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/auth/ownership"
 	"tracker-backend/internal/track"
@@ -29,7 +30,7 @@ func NewAlbumTracksService(tracksCol, albumsCol *mongo.Collection, ownershipServ
 }
 
 func (s *AlbumTracksService) GetTracksByID(
-	ctx context.Context, albumID, userID string,
+	ctx context.Context, albumID, userID string, userRole int,
 ) ([]track.Track, error) {
 	// configure logger
 	logger := slog.With(slog.String("function", "albumTracks.AlbumTracksService.GetTracksByID"))
@@ -44,7 +45,7 @@ func (s *AlbumTracksService) GetTracksByID(
 	}
 
 	// decode albumEnt data
-	var albumEnt album.Album // album entry
+	var albumEnt albumType.Album // album entry
 	if err := res.Decode(&albumEnt); err != nil {
 		return nil, errors.New("failed to decode album")
 	}
@@ -58,7 +59,9 @@ func (s *AlbumTracksService) GetTracksByID(
 	// check album status
 	// if user who made the request is not owner -> return error
 	// if user is owner -> return tracks
-	if !isOwn && albumEnt.Status != album.StatusPublic {
+	isModerator := userRole >= auth.RoleModerator
+	accessNotAllowed := !isOwn && albumEnt.Status != albumType.StatusPublic
+	if accessNotAllowed && !isModerator {
 		return nil, auth.ErrAccessDenied
 	}
 
@@ -79,4 +82,21 @@ func (s *AlbumTracksService) GetTracksByID(
 
 	// return tracks
 	return tracks, nil
+}
+
+func (s *AlbumTracksService) IsAnyTracksInAlbum(
+	ctx context.Context, albumID string,
+) (bool, error) {
+	// configure logger
+	logger := slog.With(slog.String("function", "albumTracks.AlbumTracksService.IsAnyTracksInAlbum"))
+
+	// count tracks by album id
+	count, err := s.TracksCol.CountDocuments(ctx, bson.M{"album": albumID})
+	if err != nil {
+		logger.Warn("failed to execute find function", slog.String("error", err.Error()))
+		return false, errors.New("failed to count tracks in album")
+	}
+
+	// return result
+	return count > 0, nil
 }

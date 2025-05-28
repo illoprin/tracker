@@ -1,4 +1,4 @@
-package playlist
+package playlistType
 
 import (
 	"context"

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/pkg/response"
+	userType "tracker-backend/internal/user/type"
 
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
@@ -16,7 +17,6 @@ type UserHandler struct {
 
 func NewUserHandler(s *UserService) *UserHandler {
 	v := validator.New()
-	v.RegisterValidation("role", ValidateRole)
 	return &UserHandler{
 		Service:   s,
 		Validator: v,
@@ -27,7 +27,7 @@ func NewUserHandler(s *UserService) *UserHandler {
 func (h *UserHandler) Register(
 	w http.ResponseWriter, r *http.Request,
 ) {
-	var req RegisterRequest
+	var req userType.RegisterRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid request body"))
@@ -47,14 +47,13 @@ func (h *UserHandler) Register(
 		return
 	}
 
-	// FIX: use User.ToResponse function
 	render.Status(r, http.StatusCreated)
-	render.JSON(w, r, user)
+	render.JSON(w, r, user.ToResponse())
 }
 
 // POST /user/login
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
+	var req userType.LoginRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid request body"))
@@ -92,15 +91,15 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIX: use User.ToResponse function
-	render.JSON(w, r, user)
+	// send response
+	render.JSON(w, r, user.ToResponse())
 }
 
 // PUT /user
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(auth.UserIDKey).(string)
 
-	var req UpdateRequest
+	var req userType.UpdateRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid request body"))
@@ -134,9 +133,8 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// FIX: use User.ToResponse function
 	// send updated user
-	render.JSON(w, r, user)
+	render.JSON(w, r, user.ToResponse())
 }
 
 // DELETE /user

@@ -1,4 +1,4 @@
-package user
+package userType
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type User struct {
 	PasswordHash     string    `bson:"passwordHash" json:"passwordHash"`
 	MyChoicePlaylist string    `bson:"myChoicePlaylist" json:"myChoicePlaylist"`
 	CreatedAt        time.Time `bson:"createdAt" json:"createdAt"`
-	Role             string    `bson:"role" json:"role"`
+	Role             int       `bson:"role" json:"role"`
 }
 
 func EnsureIndexes(ctx context.Context, col *mongo.Collection) error {

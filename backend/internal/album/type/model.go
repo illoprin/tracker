@@ -1,4 +1,4 @@
-package album
+package albumType
 
 import (
 	"time"
@@ -48,8 +48,8 @@ func ValidateStatus(fl validator.FieldLevel) bool {
 	return statusValidation[status]
 }
 
-func (a *Album) ToResponse() *AlbumResponse {
-	return &AlbumResponse{
+func (a *Album) ToResponse() AlbumResponse {
+	return AlbumResponse{
 		ID:        a.ID,
 		Title:     a.Title,
 		ArtistID:  a.ArtistID,

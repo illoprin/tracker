@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"tracker-backend/internal/artist"
+	artistType "tracker-backend/internal/artist/type"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -85,7 +85,7 @@ func (s *OwnershipService) IsArtistOwner(
 	logger := slog.With(slog.String("function", "ownership.OwnershipService.IsArtistOwner"))
 
 	// get artist
-	var artistEntry artist.Artist
+	var artistEntry artistType.Artist
 	err := s.artistsCol.FindOne(
 		ctx, bson.M{"userID": userID, "id": artistID},
 	).Decode(&artistEntry)
@@ -94,7 +94,7 @@ func (s *OwnershipService) IsArtistOwner(
 	if err != nil {
 		logger.Warn("failed to findone", slog.String("error", err.Error()))
 		if err == mongo.ErrNoDocuments {
-			return false, artist.ErrNotFound
+			return false, errors.New("artist not found")
 		}
 		return false, errors.New("failed to find artist")
 	}

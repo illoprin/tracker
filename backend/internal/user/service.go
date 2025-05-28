@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 	authService "tracker-backend/internal/auth"
+	"tracker-backend/internal/config"
 	auth "tracker-backend/internal/pkg/authorization"
-	"tracker-backend/internal/playlist"
+	playlistType "tracker-backend/internal/playlist/type"
+	userType "tracker-backend/internal/user/type"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -18,25 +21,22 @@ import (
 )
 
 type PlaylistCreator interface {
-	Create(context.Context, playlist.PlaylistCreateRequest) (*playlist.Playlist, error)
+	Create(context.Context, playlistType.PlaylistCreateRequest) (*playlistType.Playlist, error)
 }
 
 type UserService struct {
-	Col       *mongo.Collection
-	JwtSecret string
-	pc        PlaylistCreator
+	Col *mongo.Collection
+	pc  PlaylistCreator
 }
 
 func NewUserService(
 	ctx context.Context,
 	usersCol *mongo.Collection,
-	jwtSecret string,
 	pc PlaylistCreator,
 ) *UserService {
 	return &UserService{
-		Col:       usersCol,
-		JwtSecret: jwtSecret,
-		pc:        pc,
+		Col: usersCol,
+		pc:  pc,
 	}
 }
 
@@ -48,8 +48,8 @@ var (
 )
 
 func (s *UserService) Register(
-	ctx context.Context, credentials RegisterRequest,
-) (*User, error) {
+	ctx context.Context, credentials userType.RegisterRequest,
+) (*userType.User, error) {
 	// hash password
 	hash, err := auth.HashPassword(credentials.Password)
 
@@ -58,7 +58,7 @@ func (s *UserService) Register(
 	}
 
 	// create user schema
-	user := &User{
+	user := &userType.User{
 		ID:               uuid.NewString(),
 		Login:            credentials.Login,
 		Email:            credentials.Email,
@@ -89,24 +89,36 @@ func (s *UserService) Register(
 	}
 
 	// create default playlist
-	defaultPlaylist := playlist.PlaylistCreateRequest{
+	defaultPlaylist := playlistType.PlaylistCreateRequest{
 		Name:      "Мой выбор",
 		UserID:    user.ID,
 		IsPublic:  false,
 		IsDefault: true,
 	}
-	_, err = s.pc.Create(ctx, defaultPlaylist)
+	p, err := s.pc.Create(ctx, defaultPlaylist)
 	if err != nil {
 		return user, errors.New("failed to create default playlist")
+	}
+
+	// update default playlist pointer
+	_, err = s.Col.UpdateOne(ctx,
+		bson.M{"id": user.ID},
+		bson.M{"$set": bson.M{"myChoisePlaylist": p.ID}},
+	)
+	if err != nil {
+		return user, errors.New("failed to update default playlist")
 	}
 
 	return user, nil
 }
 
 func (s *UserService) Login(
-	ctx context.Context, credentials LoginRequest,
+	ctx context.Context, credentials userType.LoginRequest,
 ) (string, error) {
-	var user User
+	// configure logger
+	logger := slog.With(slog.String("function", "track.TrackService.Create"))
+
+	var user userType.User
 
 	err := s.Col.FindOne(ctx, bson.M{"login": credentials.Login}).Decode(&user)
 
@@ -119,17 +131,17 @@ func (s *UserService) Login(
 		return "", ErrForbidden
 	}
 
-	slog.Info("user authorized", slog.String("id", user.ID))
+	logger.Info("user authorized", slog.String("id", user.ID))
 
-	return auth.CreateTokenFromUser(
-		user.ID, user.Role, user.Email, s.JwtSecret,
+	return auth.CreateAuthToken(
+		user.Role, user.ID, user.Email, os.Getenv(config.JWTSecretEnvName),
 	)
 }
 
 func (s *UserService) GetByID(
 	ctx context.Context, id string,
-) (*User, error) {
-	var user User
+) (*userType.User, error) {
+	var user userType.User
 	err := s.Col.FindOne(ctx, bson.M{"id": id}).Decode(&user)
 
 	if err != nil {
@@ -153,8 +165,8 @@ func (s *UserService) GetAuthDTOByID(
 }
 
 func (s *UserService) Update(
-	ctx context.Context, id string, req UpdateRequest, allowed bool,
-) (*User, error) {
+	ctx context.Context, id string, req userType.UpdateRequest, allowed bool,
+) (*userType.User, error) {
 	update := bson.M{}
 
 	if req.Login != nil {

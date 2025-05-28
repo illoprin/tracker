@@ -6,8 +6,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func CreateTokenFromUser(
-	userID, userRole, userEmail, secret string,
+func CreateAuthToken(
+	userRole int, userID, userEmail, secret string,
 ) (string, error) {
 	claims := jwt.MapClaims{
 		"id":    userID,

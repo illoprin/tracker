@@ -2,31 +2,30 @@ package dependencies
 
 import (
 	"context"
-	"os"
 	"tracker-backend/internal/album"
 	albumTracks "tracker-backend/internal/album/tracks"
 	"tracker-backend/internal/app/repository"
 	"tracker-backend/internal/artist"
+	artistAlbums "tracker-backend/internal/artist/albums"
 	"tracker-backend/internal/auth/ownership"
-	"tracker-backend/internal/config"
 	"tracker-backend/internal/playlist"
 	"tracker-backend/internal/track"
 	"tracker-backend/internal/user"
 )
 
 type Dependencies struct {
-	UserService        *user.UserService
-	ArtistService      *artist.ArtistService
-	TrackService       *track.TrackService
-	AlbumService       *album.AlbumService
-	AlbumTracksService *albumTracks.AlbumTracksService
-	PlaylistService    *playlist.PlaylistService
+	*user.UserService
+	*artist.ArtistService
+	*artistAlbums.ArtistAlbumsService
+	*track.TrackService
+	*album.AlbumService
+	*albumTracks.AlbumTracksService
+	*playlist.PlaylistService
 }
 
 func InitDependencies(
 	ctx context.Context, repo *repository.Repository,
 ) *Dependencies {
-	// WARN: init repository and create dependencies
 	ownershipService := ownership.NewOwnershipService(
 		repo.ArtistsCollection, repo.ArtistsCollection,
 	)
@@ -34,20 +33,21 @@ func InitDependencies(
 	playlistService := playlist.NewPlaylistService(repo.PlaylistsCollection)
 	userService := user.NewUserService(
 		ctx, repo.UsersCollection,
-		os.Getenv(config.JWTSecretEnvName),
 		playlistService,
 	)
+	artistAlbumsService := artistAlbums.NewArtistAlbumsService(repo.AlbumsCollection)
 	artistService := artist.NewArtistService(repo.ArtistsCollection)
 	albumTracksService := albumTracks.NewAlbumTracksService(repo.TracksCollection, repo.AlbumsCollection, ownershipService)
-	albumService := album.NewAlbumService(repo.AlbumsCollection, ownershipService)
+	albumService := album.NewAlbumService(repo.AlbumsCollection, albumTracksService, ownershipService)
 	trackService := track.NewTrackService(repo.TracksCollection, ownershipService, albumService)
 
 	return &Dependencies{
-		PlaylistService:    playlistService,
-		UserService:        userService,
-		ArtistService:      artistService,
-		AlbumTracksService: albumTracksService,
-		TrackService:       trackService,
-		AlbumService:       albumService,
+		PlaylistService:     playlistService,
+		UserService:         userService,
+		ArtistAlbumsService: artistAlbumsService,
+		ArtistService:       artistService,
+		AlbumTracksService:  albumTracksService,
+		TrackService:        trackService,
+		AlbumService:        albumService,
 	}
 }

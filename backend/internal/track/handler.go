@@ -177,6 +177,7 @@ func (h *TrackHandler) StreamTrack(w http.ResponseWriter, r *http.Request) {
 func (h *TrackHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// update name, genre or file
 	// if file updated - delete old one
+	render.Status(r, http.StatusNotImplemented)
 }
 
 func (h *TrackHandler) Delete(w http.ResponseWriter, r *http.Request) {

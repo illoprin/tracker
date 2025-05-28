@@ -2,6 +2,7 @@ package artist
 
 import (
 	"net/http"
+	artistType "tracker-backend/internal/artist/type"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/pkg/response"
 
@@ -27,7 +28,7 @@ func (h *ArtistHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(auth.UserIDKey).(string)
 
-	var req CreateRequest
+	var req artistType.CreateRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid request body"))
@@ -88,7 +89,7 @@ func (h *ArtistHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req UpdateRequest
+	var req artistType.UpdateRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid request body"))

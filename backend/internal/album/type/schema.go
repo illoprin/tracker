@@ -1,4 +1,4 @@
-package album
+package albumType
 
 import (
 	"context"

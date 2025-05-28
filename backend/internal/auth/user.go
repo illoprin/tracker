@@ -9,9 +9,9 @@ type AuthUser struct {
 }
 
 const (
-	RoleAdmin     = "Admin"
-	RoleModerator = "Moderator"
-	RoleCustomer  = "Customer"
+	RoleAdmin     = 3
+	RoleModerator = 2
+	RoleCustomer  = 1
 )
 
 type UserProvider interface {

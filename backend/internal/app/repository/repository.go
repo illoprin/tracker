@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
-	"tracker-backend/internal/album"
-	"tracker-backend/internal/artist"
-	"tracker-backend/internal/playlist"
+	albumType "tracker-backend/internal/album/type"
+	artistType "tracker-backend/internal/artist/type"
+	playlistType "tracker-backend/internal/playlist/type"
 	"tracker-backend/internal/track"
-	"tracker-backend/internal/user"
+	userType "tracker-backend/internal/user/type"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -30,7 +30,7 @@ func MustInitRepository(ctx context.Context, db *mongo.Database) *Repository {
 	tracksCollection := db.Collection("tracks")
 
 	// ensure albums indices
-	if err := album.EnsureIndexes(ctx, albumsCollection); err != nil {
+	if err := albumType.EnsureIndexes(ctx, albumsCollection); err != nil {
 		panic(err.Error())
 	}
 	// ensure tracks indices
@@ -38,15 +38,15 @@ func MustInitRepository(ctx context.Context, db *mongo.Database) *Repository {
 		panic(err.Error())
 	}
 	// ensure tracks indices
-	if err := artist.EnsureIndexes(ctx, artistsCollection); err != nil {
+	if err := artistType.EnsureIndexes(ctx, artistsCollection); err != nil {
 		panic(err.Error())
 	}
 	// ensure users indices
-	if err := user.EnsureIndexes(ctx, usersCollection); err != nil {
+	if err := userType.EnsureIndexes(ctx, usersCollection); err != nil {
 		panic(err.Error())
 	}
 	// ensure playlists indices
-	if err := playlist.EnsureIndexes(ctx, playlistsCollection); err != nil {
+	if err := playlistType.EnsureIndexes(ctx, playlistsCollection); err != nil {
 		panic(err.Error())
 	}
 

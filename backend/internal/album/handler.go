@@ -2,6 +2,7 @@ package album
 
 import (
 	"net/http"
+	albumType "tracker-backend/internal/album/type"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/pkg/response"
 
@@ -17,8 +18,8 @@ type AlbumHandler struct {
 
 func NewAlbumHandler(s *AlbumService) *AlbumHandler {
 	v := validator.New()
-	v.RegisterValidation("status", ValidateStatus)
-	v.RegisterValidation("year", ValidateYear)
+	v.RegisterValidation("status", albumType.ValidateStatus)
+	v.RegisterValidation("year", albumType.ValidateYear)
 
 	return &AlbumHandler{
 		Service:   s,
@@ -32,7 +33,7 @@ func (h *AlbumHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := ctx.Value(auth.UserIDKey).(string)
 
 	// decode json
-	var req AlbumCreateRequest
+	var req albumType.AlbumCreateRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("failed to parse form data"))
@@ -65,7 +66,7 @@ func (h *AlbumHandler) Update(w http.ResponseWriter, r *http.Request) {
 	albumID := chi.URLParam(r, "id")
 
 	// decode json
-	var req AlbumUpdateRequest
+	var req albumType.AlbumUpdateRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("failed to parse form data"))
@@ -132,29 +133,6 @@ func (h *AlbumHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	// send response
 	render.JSON(w, r, album.ToResponse())
-}
-
-func (h *AlbumHandler) GetByArtistID(w http.ResponseWriter, r *http.Request) {
-	// get context keys
-	ctx := r.Context()
-	artistID := chi.URLParam(r, "artistID")
-
-	// execute service function
-	albums, err := h.Service.GetByArtistID(ctx, artistID)
-	if err != nil {
-		render.Status(r, http.StatusInternalServerError)
-		render.JSON(w, r, response.Error("failed to get albums"))
-		return
-	}
-
-	// execution result to response
-	responseAlbums := make([]*AlbumResponse, len(albums))
-	for i, album := range albums {
-		responseAlbums[i] = album.ToResponse()
-	}
-
-	// send response
-	render.JSON(w, r, responseAlbums)
 }
 
 func (h *AlbumHandler) Delete(w http.ResponseWriter, r *http.Request) {

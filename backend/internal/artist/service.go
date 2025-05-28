@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	artistType "tracker-backend/internal/artist/type"
 	"tracker-backend/internal/config"
 	uploadfile "tracker-backend/internal/pkg/file"
 
@@ -34,13 +35,13 @@ func NewArtistService(artistCol *mongo.Collection) *ArtistService {
 
 // Create new artist from CreateRequest
 func (s *ArtistService) Create(
-	ctx context.Context, userID string, req CreateRequest,
-) (*Artist, error) {
+	ctx context.Context, userID string, req artistType.CreateRequest,
+) (*artistType.Artist, error) {
 	if req.Name == "" {
 		return nil, errors.New("name is required")
 	}
 
-	artist := &Artist{
+	artist := &artistType.Artist{
 		ID:         uuid.New().String(),
 		Name:       req.Name,
 		UserID:     userID,
@@ -81,8 +82,8 @@ func (s *ArtistService) Delete(
 func (s *ArtistService) Update(
 	ctx context.Context,
 	artistID string, userID string,
-	req UpdateRequest,
-) (*Artist, error) {
+	req artistType.UpdateRequest,
+) (*artistType.Artist, error) {
 
 	update := bson.M{}
 	if req.Name != nil {
@@ -107,7 +108,7 @@ func (s *ArtistService) Update(
 
 	filter := bson.M{"id": artistID, "userID": userID}
 
-	var artist Artist
+	var artist artistType.Artist
 	err := s.Col.FindOneAndUpdate(
 		ctx,
 		filter,
@@ -129,7 +130,7 @@ func (s *ArtistService) UpdateAvatar(
 	ctx context.Context,
 	userID string, artistID string,
 	file *multipart.File, fileHeader *multipart.FileHeader,
-) (*Artist, error) {
+) (*artistType.Artist, error) {
 	// validate file
 	if err := uploadfile.ValidateFile(fileHeader, uploadfile.AllowedImageExtensions); err != nil {
 		return nil, err
@@ -137,7 +138,7 @@ func (s *ArtistService) UpdateAvatar(
 	filter := bson.M{"userID": userID, "id": artistID}
 
 	// find artist and decode
-	var artist Artist
+	var artist artistType.Artist
 	err := s.Col.FindOne(ctx, filter).Decode(&artist)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -166,7 +167,7 @@ func (s *ArtistService) UpdateAvatar(
 	// create new update data
 	update := bson.M{"avatarPath": newFilePath}
 
-	var updatedArtist Artist
+	var updatedArtist artistType.Artist
 	err = s.Col.FindOneAndUpdate(
 		ctx,
 		filter,
@@ -184,8 +185,8 @@ func (s *ArtistService) UpdateAvatar(
 // GetByID returns artist by id
 func (s *ArtistService) GetByID(
 	ctx context.Context, artistID string,
-) (*Artist, error) {
-	var artist Artist
+) (*artistType.Artist, error) {
+	var artist artistType.Artist
 	err := s.Col.FindOne(ctx, bson.M{"id": artistID}).Decode(&artist)
 	if err != nil {
 		return nil, ErrNotFound
@@ -196,14 +197,14 @@ func (s *ArtistService) GetByID(
 // GetByUserID returns all artists by userID
 func (s *ArtistService) GetByUserID(
 	ctx context.Context, userID string,
-) ([]Artist, error) {
+) ([]artistType.Artist, error) {
 	cursor, err := s.Col.Find(ctx, bson.M{"userID": userID})
 	if err != nil {
 		return nil, errors.New("failed to find matches")
 	}
 	defer cursor.Close(ctx)
 
-	var artists []Artist
+	var artists []artistType.Artist
 	if err := cursor.All(ctx, &artists); err != nil {
 		return nil, errors.New("failed to parse result")
 	}
