@@ -12,6 +12,7 @@ import (
 	artistType "tracker-backend/internal/artist/type"
 	"tracker-backend/internal/config"
 	uploadfile "tracker-backend/internal/pkg/file"
+	"tracker-backend/internal/pkg/service"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,7 +21,6 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("artist not found or not owned by the user")
 	ErrNameTaken = errors.New("name is already in use")
 )
 
@@ -118,7 +118,7 @@ func (s *ArtistService) Update(
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, service.ErrNotFound
 		}
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s *ArtistService) UpdateAvatar(
 	err := s.Col.FindOne(ctx, filter).Decode(&artist)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, service.ErrNotFound
 		}
 		return nil, err
 	}
@@ -189,7 +189,10 @@ func (s *ArtistService) GetByID(
 	var artist artistType.Artist
 	err := s.Col.FindOne(ctx, bson.M{"id": artistID}).Decode(&artist)
 	if err != nil {
-		return nil, ErrNotFound
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, service.ErrNotFound
+		}
+		return nil, service.ErrNotFound
 	}
 	return &artist, nil
 }

@@ -13,6 +13,7 @@ type AlbumResponse struct {
 	Year      int      `json:"year"`
 	CoverPath string   `json:"coverPath"`
 	Genres    []string `json:"genres"`
+	IsHidden  bool     `json:"isHidden"`
 	Status    string   `json:"status"`
 	CreatedAt string   `json:"createdAt"`
 }
@@ -33,8 +34,8 @@ type AlbumUpdateRequest struct {
 
 var (
 	statusValidation = map[string]bool{
-		StatusPublic: true,
-		StatusHidden: true,
+		StatusModerated:    true,
+		StatusOnModeration: true,
 	}
 )
 
@@ -57,6 +58,7 @@ func (a *Album) ToResponse() AlbumResponse {
 		CoverPath: a.CoverPath,
 		Genres:    a.Genres,
 		Status:    a.Status,
+		IsHidden:  a.IsHidden,
 		CreatedAt: a.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }

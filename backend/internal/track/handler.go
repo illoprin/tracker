@@ -17,6 +17,7 @@ import (
 	"tracker-backend/internal/auth"
 	uploadfile "tracker-backend/internal/pkg/file"
 	"tracker-backend/internal/pkg/response"
+	"tracker-backend/internal/pkg/service"
 )
 
 type TrackHandler struct {
@@ -95,7 +96,7 @@ func (h *TrackHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	track, err := h.service.GetByID(ctx, trackID)
 	if err != nil {
-		if err == ErrNotFound {
+		if err == service.ErrNotFound {
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("track not found"))
 		} else {
@@ -108,7 +109,7 @@ func (h *TrackHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, track.ToResponse())
 }
 
-// StreamTrack обрабатывает стриминг аудиофайла
+// StreamTrack handle track stream
 func (h *TrackHandler) StreamTrack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	trackID := chi.URLParam(r, "id")
@@ -121,7 +122,7 @@ func (h *TrackHandler) StreamTrack(w http.ResponseWriter, r *http.Request) {
 	// get file path
 	filePath, err := h.service.GetFilePathByID(ctx, trackID)
 	if err != nil {
-		if err == ErrNotFound {
+		if err == service.ErrNotFound {
 			render.Status(r, http.StatusNotFound)
 			render.JSON(w, r, response.Error("track not found"))
 		} else {

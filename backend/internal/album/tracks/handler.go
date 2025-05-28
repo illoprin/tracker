@@ -3,9 +3,9 @@ package albumTracks
 import (
 	"errors"
 	"net/http"
-	"tracker-backend/internal/album"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/pkg/response"
+	"tracker-backend/internal/pkg/service"
 	"tracker-backend/internal/track"
 
 	"github.com/go-chi/chi/v5"
@@ -39,7 +39,7 @@ func (h *AlbumTracksHandler) GetAlbumTracks(w http.ResponseWriter, r *http.Reque
 	// execute service function
 	tracks, err := h.albumTracksService.GetTracksByID(ctx, albumID, userID, userRole)
 	if err != nil {
-		if errors.Is(err, album.ErrNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
 			render.Status(r, http.StatusNotFound)
 		} else {
 			render.Status(r, http.StatusBadRequest)

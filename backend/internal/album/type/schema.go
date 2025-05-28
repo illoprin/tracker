@@ -17,12 +17,13 @@ type Album struct {
 	CoverPath string    `bson:"coverPath"`
 	Genres    []string  `bson:"genres"`
 	Status    string    `bson:"status"`
+	IsHidden  bool      `bson:"isHidden"`
 	CreatedAt time.Time `bson:"createdAt"`
 }
 
 const (
-	StatusPublic       = "Public"
-	StatusHidden       = "Hidden"
+	StatusModerated    = "Moderated"
+	StatusDenied       = "Denied"
 	StatusOnModeration = "OnModeration"
 )
 

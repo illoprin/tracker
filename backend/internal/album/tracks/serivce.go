@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"tracker-backend/internal/album"
-	albumType "tracker-backend/internal/album/type"
-	"tracker-backend/internal/auth"
 	"tracker-backend/internal/auth/ownership"
+	"tracker-backend/internal/pkg/service"
 	"tracker-backend/internal/track"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -20,7 +18,11 @@ type AlbumTracksService struct {
 	ownershipService *ownership.OwnershipService
 }
 
-func NewAlbumTracksService(tracksCol, albumsCol *mongo.Collection, ownershipService *ownership.OwnershipService) *AlbumTracksService {
+func NewAlbumTracksService(
+	tracksCol,
+	albumsCol *mongo.Collection,
+	ownershipService *ownership.OwnershipService,
+) *AlbumTracksService {
 
 	return &AlbumTracksService{
 		TracksCol:        tracksCol,
@@ -39,30 +41,9 @@ func (s *AlbumTracksService) GetTracksByID(
 	res := s.AlbumsCol.FindOne(ctx, bson.M{"id": albumID})
 	if res.Err() != nil {
 		if errors.Is(res.Err(), mongo.ErrNoDocuments) {
-			return nil, album.ErrNotFound
+			return nil, service.ErrNotFound
 		}
 		return nil, errors.New("failed to check album existence")
-	}
-
-	// decode albumEnt data
-	var albumEnt albumType.Album // album entry
-	if err := res.Decode(&albumEnt); err != nil {
-		return nil, errors.New("failed to decode album")
-	}
-
-	// check ownership
-	isOwn, err := s.ownershipService.IsAlbumOwner(ctx, userID, albumID)
-	if err != nil {
-		return nil, errors.New("failed to check album ownership")
-	}
-
-	// check album status
-	// if user who made the request is not owner -> return error
-	// if user is owner -> return tracks
-	isModerator := userRole >= auth.RoleModerator
-	accessNotAllowed := !isOwn && albumEnt.Status != albumType.StatusPublic
-	if accessNotAllowed && !isModerator {
-		return nil, auth.ErrAccessDenied
 	}
 
 	// find tracks

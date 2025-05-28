@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 	albumType "tracker-backend/internal/album/type"
-	"tracker-backend/internal/auth"
 	"tracker-backend/internal/auth/ownership"
 	uploadfile "tracker-backend/internal/pkg/file"
+	"tracker-backend/internal/pkg/service"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -29,7 +29,6 @@ type TrackChecker interface {
 
 var (
 	ErrTitleTaken = errors.New("album with this title already exists")
-	ErrNotFound   = errors.New("album not found")
 )
 
 func NewAlbumService(
@@ -57,7 +56,7 @@ func (s *AlbumService) Create(
 		return nil, errors.New("failed to check ownership")
 	}
 	if !isOwn {
-		return nil, auth.ErrAccessDenied
+		return nil, service.ErrAccessDenied
 	}
 
 	// album is hidden by default
@@ -67,7 +66,8 @@ func (s *AlbumService) Create(
 		ArtistID:  req.ArtistID,
 		Year:      req.Year,
 		Genres:    req.Genres,
-		Status:    albumType.StatusHidden,
+		Status:    albumType.StatusModerated,
+		IsHidden:  true,
 		CreatedAt: time.Now(),
 	}
 
@@ -95,7 +95,7 @@ func (s *AlbumService) UpdateCover(
 		return nil, errors.New("failed check album ownership")
 	}
 	if !isOwner {
-		return nil, auth.ErrAccessDenied
+		return nil, service.ErrAccessDenied
 	}
 
 	filter := bson.M{"id": albumID}
@@ -141,7 +141,7 @@ func (s *AlbumService) Update(
 		return nil, errors.New("failed check album ownership")
 	}
 	if !isOwner {
-		return nil, auth.ErrAccessDenied
+		return nil, service.ErrAccessDenied
 	}
 
 	filter := bson.M{"id": albumID}
@@ -181,7 +181,7 @@ func (s *AlbumService) Update(
 	if err != nil {
 		// check not found error
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, service.ErrNotFound
 		}
 		// check constraint error
 		if writeErr, ok := err.(mongo.WriteException); ok {
@@ -205,7 +205,7 @@ func (s *AlbumService) GetByID(
 	err := s.Col.FindOne(ctx, bson.M{"id": albumID}).Decode(&album)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, service.ErrNotFound
 		}
 		return nil, err
 	}
@@ -230,14 +230,14 @@ func (s *AlbumService) Delete(
 		return errors.New("failed check album owner")
 	}
 	if !isOwn {
-		return auth.ErrAccessDenied
+		return service.ErrAccessDenied
 	}
 	res, err := s.Col.DeleteOne(ctx, bson.M{"id": albumID})
 	if err != nil {
 		return errors.New("failed to delete")
 	}
 	if res.DeletedCount < 1 {
-		return ErrNotFound
+		return service.ErrNotFound
 	}
 	return nil
 }

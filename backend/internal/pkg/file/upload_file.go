@@ -3,6 +3,7 @@ package uploadfile
 import (
 	"errors"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -39,6 +40,9 @@ func UploadFile(
 	uploadDir string, // full upload path
 	allowedExt map[string]bool, // allowed extensions
 ) (string, error) {
+	// configure logger
+	logger := slog.With(slog.String("function", "uploadfile.UploadFile"))
+
 	// check size
 	if fileHeader.Size > maxFileSize {
 		return "", ErrFileTooLarge
@@ -52,6 +56,7 @@ func UploadFile(
 
 	// create folder if it not exists
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		logger.Warn("failed to create new directory", slog.String("error", err.Error()))
 		return "", err
 	}
 
@@ -62,6 +67,7 @@ func UploadFile(
 	// open file
 	src, err := fileHeader.Open()
 	if err != nil {
+		logger.Warn("failed to open file header", slog.String("error", err.Error()))
 		return "", err
 	}
 	defer src.Close() // close file after saving
@@ -69,11 +75,13 @@ func UploadFile(
 	// create file on server
 	dst, err := os.Create(filePath)
 	if err != nil {
+		logger.Warn("failed to create new file", slog.String("error", err.Error()))
 		return "", err
 	}
 	defer dst.Close()
 
 	if _, err := io.Copy(dst, src); err != nil {
+		logger.Warn("failed to copy data to created file", slog.String("error", err.Error()))
 		return "", err
 	}
 

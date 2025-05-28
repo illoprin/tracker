@@ -1,16 +1,19 @@
 package album
 
 import (
+	albumTracks "tracker-backend/internal/album/tracks"
 	"tracker-backend/internal/auth"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func RegisterAlbumRoutes(
-	router chi.Router, s *AlbumService,
+	router chi.Router,
+	albumSvc *AlbumService,
+	albumTracksSvc *albumTracks.AlbumTracksService,
 	authMiddleware auth.MiddlewareFunc,
 ) {
-	h := NewAlbumHandler(s)
+	h := NewAlbumHandler(albumSvc)
 
 	router.Route("/album", func(r chi.Router) {
 		r.Use(authMiddleware)

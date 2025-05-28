@@ -1,10 +1,12 @@
 package artist
 
 import (
+	"errors"
 	"net/http"
 	artistType "tracker-backend/internal/artist/type"
 	"tracker-backend/internal/auth"
 	"tracker-backend/internal/pkg/response"
+	"tracker-backend/internal/pkg/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -43,7 +45,7 @@ func (h *ArtistHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	artist, err := h.Service.Create(ctx, userID, req)
 	if err != nil {
-		if err == ErrNameTaken {
+		if errors.Is(err, ErrNameTaken) {
 			render.Status(r, http.StatusConflict)
 		} else {
 			render.Status(r, http.StatusInternalServerError)
@@ -105,9 +107,9 @@ func (h *ArtistHandler) Update(w http.ResponseWriter, r *http.Request) {
 	artist, err := h.Service.Update(ctx, artistID, userID, req)
 	// check update results
 	if err != nil {
-		if err == ErrNameTaken {
+		if errors.Is(err, ErrNameTaken) {
 			render.Status(r, http.StatusConflict)
-		} else if err == ErrNotFound {
+		} else if errors.Is(err, service.ErrNotFound) {
 			render.Status(r, http.StatusNotFound)
 		}
 		render.JSON(w, r, response.Error(err.Error()))

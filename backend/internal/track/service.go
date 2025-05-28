@@ -10,21 +10,14 @@ import (
 	"path"
 	"path/filepath"
 	"time"
-	"tracker-backend/internal/auth"
 	"tracker-backend/internal/auth/ownership"
 	"tracker-backend/internal/config"
 	uploadfile "tracker-backend/internal/pkg/file"
+	"tracker-backend/internal/pkg/service"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-)
-
-var (
-	ErrNotFound         = errors.New("track not found")
-	ErrInvalidFileType  = errors.New("invalid file type")
-	ErrFileUploadFailed = errors.New("file upload failed")
-	ErrUndefinedAlbum   = errors.New("related album is undefined")
 )
 
 type TrackService struct {
@@ -66,7 +59,7 @@ func (s *TrackService) Create(
 		if err != nil {
 			return nil, errors.New("failed to check album existence")
 		}
-		return nil, errors.New("album not found")
+		return nil, service.ErrNotFound
 	}
 
 	// check album owner
@@ -74,12 +67,12 @@ func (s *TrackService) Create(
 		if err != nil {
 			return nil, errors.New("failed to check album owner")
 		}
-		return nil, auth.ErrAccessDenied
+		return nil, service.ErrAccessDenied
 	}
 
 	// check file type
 	if err := uploadfile.ValidateFile(fileHeader, uploadfile.AllowedAudioExtensions); err != nil {
-		return nil, ErrInvalidFileType
+		return nil, err
 	}
 
 	// create file path
@@ -113,7 +106,7 @@ func (s *TrackService) Create(
 		logger.Error("failed to insert", slog.String("error", err.Error()))
 		// delete related file if error occurred
 		os.Remove(filePath)
-		return nil, ErrFileUploadFailed
+		return nil, service.ErrUploadFailed
 	}
 
 	logger.Info("track uploaded",
@@ -133,13 +126,13 @@ func (s *TrackService) GetByID(
 ) (*Track, error) {
 	// configure logger
 	logger := slog.With(slog.String("function", "track.TrackService.GetByID"))
-	_ = logger
 
 	var track Track
 	err := s.Col.FindOne(ctx, bson.M{"id": id}).Decode(&track)
 	if err != nil {
+		logger.Warn("failed to find track metadata", slog.String("error", err.Error()))
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNotFound
+			return nil, service.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get track: %w", err)
 	}
@@ -151,7 +144,6 @@ func (s *TrackService) GetByID(
 func (s *TrackService) GetFilePathByID(ctx context.Context, id string) (string, error) {
 	// configure logger
 	logger := slog.With(slog.String("function", "track.TrackService.GetFilePathByID"))
-	_ = logger
 
 	// get track
 	track, err := s.GetByID(ctx, id)
@@ -168,6 +160,7 @@ func (s *TrackService) GetFilePathByID(ctx context.Context, id string) (string, 
 
 	// check file existence
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		logger.Warn("failed to get track file", slog.String("error", err.Error()))
 		return "", errors.New("audio file not found")
 	}
 
@@ -180,7 +173,6 @@ func (s *TrackService) Delete(
 ) error {
 	// configure logger
 	logger := slog.With(slog.String("function", "track.TrackService.Delete"))
-	_ = logger
 
 	// check ownership
 	isOwner, err := s.ownershipService.IsTrackOwner(ctx, id, userID)
@@ -188,28 +180,30 @@ func (s *TrackService) Delete(
 		return errors.New("failed to check ownership")
 	}
 	if !isOwner {
-		return auth.ErrAccessDenied
+		return service.ErrAccessDenied
 	}
 
 	// find document
 	var track Track
 	if err := s.Col.FindOne(ctx, bson.M{"id": id}).Decode(&track); err != nil {
-		return errors.New("failed to find")
+		return service.ErrNotFound
 	}
 
 	// remove track
 	filePath := filepath.Join(os.Getenv(config.PublicDirPathEnvName), config.AudioDir, track.AudioFile)
 	if err := os.Remove(filePath); err != nil {
+		logger.Warn("failed to remove file", slog.String("error", err.Error()))
 		return errors.New("failed to delete audio")
 	}
 
 	// remove document
 	res, err := s.Col.DeleteOne(ctx, bson.M{"id": id})
 	if err != nil {
+		logger.Warn("failed to delete document", slog.String("error", err.Error()))
 		return errors.New("failed to remove")
 	}
 	if res.DeletedCount < 1 {
-		return ErrNotFound
+		return service.ErrNotFound
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package playlistType
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -9,12 +10,13 @@ import (
 )
 
 type Playlist struct {
-	ID        string   `bson:"id"`
-	Name      string   `bson:"name"`
-	UserID    string   `bson:"userID"`
-	IsDefault bool     `bson:"isDefault"`
-	IsPublic  bool     `bson:"isPublic"`
-	TrackIDs  []string `bson:"trackIDs"`
+	ID        string    `bson:"id"`
+	Name      string    `bson:"name"`
+	UserID    string    `bson:"userID"`
+	IsDefault bool      `bson:"isDefault"`
+	IsPublic  bool      `bson:"isPublic"`
+	TrackIDs  []string  `bson:"trackIDs"`
+	UpdatedAt time.Time `bson:"updatedAt"`
 }
 
 func EnsureIndexes(ctx context.Context, col *mongo.Collection) error {

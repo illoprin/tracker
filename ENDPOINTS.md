@@ -6,40 +6,38 @@
 
 ### System
 
-| Endpoint     | Description | Requirements |
-| ------------ | ----------- | ------------ |
-| POST `/ping` | Ping server |              |
+| Endpoint    | Description | Requirements |
+| ----------- | ----------- | ------------ |
+| GET `/ping` | Ping server |              |
+
+### Search
+
+| Endpoint                     | Description                    | Requirements | Status          |
+| ---------------------------- | ------------------------------ | ------------ | --------------- |
+| GET `/resource/search?query` | Search tracks, albums, artists |              | Not Implemented |
 
 ### User
 
-| Endpoint           | Description           | Requirements                      |
-| ------------------ | --------------------- | --------------------------------- |
-| POST `/user`       | Registration          | RegisterRequest                   |
-| POST `/user/login` | Log In                | LoginRequest                      |
-| GET `/user/me`     | Get current user data | Authorization Token               |
-| PUT `/user`        | Update current user   | UpdateRequest Authorization Token |
-| DELETE `/user`     | Delete current user   | Authorization Token               |
+| Endpoint                 | Description           | Requirements                        |
+| ------------------------ | --------------------- | ----------------------------------- |
+| POST `/user`             | Registration          | RegisterRequest                     |
+| POST `/user/login`       | Log In                | LoginRequest                        |
+| GET `/user/me`           | Get current user data | Authorization Token                 |
+| PUT `/user`              | Update current user   | UpdateRequest Authorization Token   |
+| DELETE `/user`           | Delete current user   | Authorization Token                 |
+| GET `/user/search?query` | Search users          | Authorization Token, Moderator role |
 
 ### Artist
 
 | Endpoint                  | Description          | Requirements                             |
 | ------------------------- | -------------------- | ---------------------------------------- |
 | GET `/artist/{id}`        | Get artist           |                                          |
+| GET `/artist/{id}/albums` | Get artist's albums  |                                          |
 | POST `/artist`            | Create new artist    | Authorization Token, CreateRequest       |
 | GET `/artist/my`          | Get user's artists   | Authorization Token                      |
 | PUT `/artist/{id}`        | Update artist        | UpdateRequest, Authorization Token       |
 | PUT `/artist/{id}/avatar` | Update artist avatar | FormData, Authorization Token, Ownership |
 | DELETE `/artist/{id}`     | Delete artist        | Authorization Token, Ownership           |
-
-### Album
-
-| Endpoint                 | Description        | Requirements                   |
-| ------------------------ | ------------------ | ------------------------------ |
-| POST `/track`            | Upload new track   | Authorization Token            |
-| GET `/track/{id}`        | Get track metadata |                                |
-| GET `/track/{id}/stream` | Stream track       |                                |
-| DELETE `/track/{id}`     | Delete track       | Authorization Token, Ownership |
-| PUT `/track/{id}`        | Update track       | Authorization Token, Ownership |
 
 ### Track
 
@@ -47,19 +45,37 @@
 | ------------------------ | ------------------ | ------------------------------ | --------------- |
 | POST `/track`            | Upload new track   | Authorization Token            |                 |
 | GET `/track/{id}`        | Get track metadata |                                |                 |
-| GET `/track/{id}/stream` | Stream track       |                                |                 |
-| DELETE `/track/{id}`     | Delete track       | Authorization Token, Ownership | Not Implemented |
+| GET `/track/{id}/stream` | Stream track       | HTTP-Range request             |                 |
+| DELETE `/track/{id}`     | Delete track       | Authorization Token, Ownership |                 |
 | PUT `/track/{id}`        | Update track       | Authorization Token, Ownership | Not Implemented |
 
 ### Album
 
-| Endpoint                  | Description         | Requirements                   |
-| ------------------------- | ------------------- | ------------------------------ |
-| POST `/album`             | Create new album    | Authorization Token            |
-| GET `/album/{id}`         | Get track metadata  |                                |
-| GET `/artist/{id}/albums` | Get artist's albums |                                |
-| DELETE `/album/{id}`      | Delete album        | Authorization Token, Ownership |
-| PUT `/album/{id}`         | Update album        | Authorization Token, Ownership |
+| Endpoint                 | Description                 | Requirements                   |
+| ------------------------ | --------------------------- | ------------------------------ |
+| POST `/album`            | Create new album            | Authorization Token            |
+| GET `/album/{id}`        | Get album metadata          |                                |
+| GET `/album/{id}/tracks` | Get album's tracks metadata |                                |
+| DELETE `/album/{id}`     | Delete album                | Authorization Token, Ownership |
+| PUT `/album/{id}`        | Update album                | Authorization Token, Ownership |
+
+### Content Moderation
+
+| Endpoint                     | Description              | Requirements                                            |
+| ---------------------------- | ------------------------ | ------------------------------------------------------- |
+| PUT `/album/{id}/moderation` | Moderate album           | Authorization Token, Moderator role, Moderation request |
+| GET `/album/on-moderation`   | Get albums on moderation | Authorization Token, Moderator role                     |
+
+### Playlist
+
+| Endpoint                                 | Description                    | Requirements                                            |
+| ---------------------------------------- | ------------------------------ | ------------------------------------------------------- |
+| POST `/playlist/`                        | Create new playlist            | Authorization Token                                     |
+| GET `/playlist/{id}/tracks`              | Get playlist's tracks metadata | Authorization Token, Ownership if resource isn't public |
+| PUT `/playlist/{id}/tracks/{trackID}`    | Push track to playlist         | Authorization Token, Ownership                          |
+| DELETE `/playlist/{id}/tracks/{trackID}` | Remove track from playlist     | Authorization Token, Ownership                          |
+| PUT `/playlist/{id}`                     | Update playlist metadata       | Authorization Token, Ownership                          |
+| DELETE `/playlist/{id}`                  | Delete playlist metadata       | Authorization Token, Ownership                          |
 
 ## Models
 
@@ -212,11 +228,50 @@ audio: audio/wav,audio/m4a,audio/mp3
 
 #### Update request
 
+> ℹ️ after any changes the album goes to moderation (status = 'OnModeration')
+
 ```json
 {
-  "title": String,
-  "status": enum('Public', 'Hidden'),
-  "year": Int,
-  "genres": []String
+  "title?": String,
+  "isHidden?": Bool,
+  "year?": Int,
+  "genres?": []String
+}
+```
+
+#### Moderation request
+
+```json
+{
+  "status": enum('Moderated', 'Denied')
+  "reason": String
+}
+```
+
+### Playlist
+
+> ℹ️ default playlist "My Choice" is marked as default (isDefault = true)
+
+#### Schema
+
+```json
+{
+  "name": String,
+  "userID": StringUUID,
+  "isDefault": Bool,
+  "isPublic": Bool,
+  "trackIDs": []StringUUID,
+  "updatedAt": ISO8601Date
+}
+```
+
+#### Update request
+
+> ℹ️ each user can update non-default playlists only
+
+```json
+{
+  "name?": String,
+  "isPublic?": Bool,
 }
 ```

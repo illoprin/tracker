@@ -17,7 +17,7 @@ func NewAppRouter(deps *dependencies.Dependencies) *chi.Mux {
 
 	user.RegisterUserRoutes(router, deps.UserService, authMiddleware)
 	artist.RegisterArtistRoutes(router, deps.ArtistService, deps.ArtistAlbumsService, authMiddleware)
-	album.RegisterAlbumRoutes(router, deps.AlbumService, authMiddleware)
+	album.RegisterAlbumRoutes(router, deps.AlbumService, deps.AlbumTracksService, authMiddleware)
 
 	return router
 }
