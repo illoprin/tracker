@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -30,7 +30,7 @@ func NewMongoClient(ctx context.Context, uri, dbName string) (*MongoClient, erro
 		return nil, err
 	}
 
-	fmt.Println("mongodb connection established")
+	slog.Info("mongodb connection established")
 
 	return &MongoClient{
 		Client:   client,

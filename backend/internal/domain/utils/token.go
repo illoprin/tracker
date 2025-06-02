@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"time"
+	"tracker-backend/internal/config"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -14,7 +15,7 @@ type JWTClaims struct {
 }
 
 func CreateTokenFromClaims(c JWTClaims) (string, error) {
-	exp, err := time.ParseDuration(os.Getenv("TOKEN_LIFETIME"))
+	exp, err := time.ParseDuration(os.Getenv(config.TokenLifetimeEnvName))
 	if err != nil {
 		return "", err
 	}
@@ -30,5 +31,5 @@ func CreateTokenFromClaims(c JWTClaims) (string, error) {
 		jwt.SigningMethodHS256, claims,
 	)
 
-	return token.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
+	return token.SignedString([]byte(os.Getenv(config.TokenSecretEnvName)))
 }

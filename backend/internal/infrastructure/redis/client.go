@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -27,7 +28,7 @@ func NewRedisClient(
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to ping Redis: %w", err)
 	}
-	fmt.Println("redis connection established")
+	slog.Info("redis connection established")
 
 	// return structure
 	return &RedisClient{
