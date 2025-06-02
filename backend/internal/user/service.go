@@ -102,7 +102,7 @@ func (s *UserService) Register(
 	// update default playlist pointer
 	_, err = s.Col.UpdateOne(ctx,
 		bson.M{"id": user.ID},
-		bson.M{"$set": bson.M{"myChoisePlaylist": p.ID}},
+		bson.M{"$set": bson.M{"myChoicePlaylist": p.ID}},
 	)
 	if err != nil {
 		return user, errors.New("failed to update default playlist")
@@ -231,6 +231,7 @@ func (s *UserService) Delete(
 	ctx context.Context, id string,
 ) error {
 	res, err := s.Col.DeleteOne(ctx, bson.M{"id": id})
+	// TODO: delete user artists, albums, tracks, clear playlists
 	if res.DeletedCount < 1 {
 		return service.ErrNotFound
 	}

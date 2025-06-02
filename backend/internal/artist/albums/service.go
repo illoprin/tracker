@@ -39,7 +39,7 @@ func (s *ArtistAlbumsService) GetByArtistID(
 	filter := bson.M{
 		"artistID": artistID,
 	}
-	isOwn, err := s.ownershipService.IsArtistOwner(ctx, userID, artistID)
+	isOwn, _ := s.ownershipService.IsArtistOwner(ctx, userID, artistID)
 
 	// if user is not moderator -> show only moderated and public albums
 	if userRole <= auth.RoleCustomer && !isOwn {
