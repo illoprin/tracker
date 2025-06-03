@@ -11,6 +11,7 @@ import (
 	"tracker-backend/internal/domain/utils"
 	"tracker-backend/internal/pkg/logger"
 	"tracker-backend/internal/pkg/service"
+	"tracker-backend/internal/pkg/token"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -57,12 +58,12 @@ func getSessionIdCacheKey(sessionId string) string {
 }
 
 func createToken(user *schemas.User, sessionId string) (string, error) {
-	claims := utils.JWTClaims{
+	claims := authToken.JWTClaims{
 		UserID:    user.ID,
 		SessionID: sessionId,
 		Role:      user.Role,
 	}
-	token, err := utils.CreateTokenFromClaims(claims)
+	token, err := authToken.CreateTokenFromClaims(claims)
 	return token, err
 }
 
@@ -157,12 +158,12 @@ func (svc *AuthorizationService) Login(
 }
 
 // Verify returns false if session is invalid
-func (svc *AuthorizationService) Verify(ctx context.Context, token string) (*schemas.User, *utils.JWTClaims, bool, error) {
+func (svc *AuthorizationService) Verify(ctx context.Context, token string) (*schemas.User, *authToken.JWTClaims, bool, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.AuthorizationService.Verify"))
 
 	// parse token
-	decoded, claims, err := utils.DecodeToken(token)
+	decoded, claims, err := authToken.DecodeToken(token)
 	if err != nil {
 		_logger.Error("failed to decode token", logger.ErrorAttr(err))
 		return nil, nil, false, service.ErrForbidden
@@ -173,7 +174,7 @@ func (svc *AuthorizationService) Verify(ctx context.Context, token string) (*sch
 
 	key := getSessionIdCacheKey(claims.SessionID)
 
-	// if token is invalid find session by session id from claims
+	// if token is invalid -> find session
 	cacheToken, _ := svc.s.GetString(ctx, key)
 	if cacheToken == "" {
 		return nil, nil, false, service.ErrForbidden
@@ -235,9 +236,9 @@ func (svc *AuthorizationService) Logout(
 	token string,
 ) error {
 	// configure _logger
-	_logger := slog.With(slog.String("func", "services.AuthorizationService.Refresh"))
+	_logger := slog.With(slog.String("func", "services.AuthorizationService.Logout"))
 
-	_, claims, err := utils.DecodeToken(token)
+	_, claims, err := authToken.DecodeToken(token)
 	if err != nil {
 		_logger.Error("failed to decode token", logger.ErrorAttr(err))
 		return service.ErrForbidden
