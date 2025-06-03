@@ -66,10 +66,7 @@ func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	if !request.ValidateBody(w, r, h.v, req) {
 		return
 	}
-	roleChangingAllowed := false
-	if r.Header.Get("Allow-Access") == "1" {
-		roleChangingAllowed = true
-	}
+	roleChangingAllowed := r.Header.Get("Allow-Access") == "1"
 	// execute service function
 	user, err := h.uSvc.UpdateByID(ctx, userId, req, roleChangingAllowed)
 	if err != nil {

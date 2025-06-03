@@ -120,6 +120,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	if len(req.Token) < 16 {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("invalid token"))
+		return
 	}
 
 	// execute service function

@@ -13,7 +13,8 @@ func ValidateFile(
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 	if !allowedExtensions[ext] {
 		return ErrInvalidFileType
-	} else if fileHeader.Size > maxFileSize {
+	}
+	if fileHeader.Size > maxFileSize {
 		return ErrFileTooLarge
 	}
 

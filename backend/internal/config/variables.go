@@ -11,3 +11,9 @@ var (
 	TokenLifetimeEnvName = "TOKEN_LIFETIME"
 	TokenSecretEnvName   = "TOKEN_SECRET"
 )
+
+var (
+	AudioDir   = "audio"
+	CoversDir  = "cover"
+	AvatarsDir = "avatars"
+)

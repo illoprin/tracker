@@ -15,9 +15,15 @@ var (
 	AlbumTypeSingle = "single"
 )
 
+var (
+	AlbumStatusApproved = "approved"
+	AlbumStatusPending  = "pending"
+	AlbumStatusRejected = "rejected"
+)
+
 type AlbumModeration struct {
-	Status  string `bson:"status"`
-	Comment string `bson:"comment"`
+	Status  string `bson:"status" json:"status"`
+	Comment string `bson:"comment" json:"comment"`
 }
 
 type Album struct {

@@ -15,6 +15,7 @@ import (
 	"tracker-backend/internal/interfaces/rest"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -63,6 +64,8 @@ func main() {
 
 	// create router
 	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+
 	rest.MountAppRoutes(r, deps)
 
 	// configure server

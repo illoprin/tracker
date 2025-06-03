@@ -15,13 +15,19 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-type UserService struct {
-	userCol *mongo.Collection
+type UserFlusher interface {
+	FlushUserData(ctx context.Context, id string) error
 }
 
-func NewUserService(userCol *mongo.Collection) *UserService {
+type UserService struct {
+	userCol *mongo.Collection
+	uf      UserFlusher
+}
+
+func NewUserService(userCol *mongo.Collection, userFlusher UserFlusher) *UserService {
 	return &UserService{
 		userCol: userCol,
+		uf:      userFlusher,
 	}
 }
 
@@ -98,6 +104,12 @@ func (svc *UserService) DeleteByID(ctx context.Context, userId string) error {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.UserService.DeleteByID"))
 
+	// flush related data
+	if err := svc.uf.FlushUserData(ctx, userId); err != nil {
+		return service.ErrInternal
+	}
+
+	// delete user document
 	res, err := svc.userCol.DeleteOne(ctx, bson.M{"id": userId})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -110,8 +122,6 @@ func (svc *UserService) DeleteByID(ctx context.Context, userId string) error {
 	if res.DeletedCount == 0 {
 		return service.ErrNotFound
 	}
-
-	// TODO: delete related data
 
 	return nil
 }
