@@ -31,6 +31,7 @@ services:
     container_name: tracker-backend
     build:
       context: ./backend
+      dockerfile: Dockerfile.dev
       network: host
     ports:
       - '8000:8000'

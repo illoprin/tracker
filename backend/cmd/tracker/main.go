@@ -8,6 +8,7 @@ import (
 	"time"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/domain/repository"
+	"tracker-backend/internal/infrastructure/dependencies"
 	"tracker-backend/internal/infrastructure/logger"
 	"tracker-backend/internal/infrastructure/mongo"
 	"tracker-backend/internal/infrastructure/redis"
@@ -25,7 +26,8 @@ func main() {
 	}
 
 	// init logger
-	if err := logger.InitLogger(); err != nil {
+
+	if err, _ := logger.InitLogger(); err != nil {
 		panic("could not init logger")
 	}
 
@@ -47,7 +49,7 @@ func main() {
 	if err != nil {
 		slog.Error("could not connect redis", slog.String("error", err.Error()))
 	}
-	_ = redisClient
+	defer redisClient.Close()
 
 	// create domain repository
 	repo, err := repository.InitRepository(context.TODO(), mongoClient.Database)
@@ -55,12 +57,13 @@ func main() {
 		slog.Error("could not create repository", slog.String("error", err.Error()))
 	}
 	_ = repo
-	// TODO: init services
+	// init dependencies
+	deps := dependencies.InitDependencies(repo, redisClient)
 	// TODO: init cron jobs
 
 	// create router
 	r := chi.NewRouter()
-	r.Mount("/api", rest.NewAppRouter())
+	rest.MountAppRoutes(r, deps)
 
 	// configure server
 	server := http.Server{

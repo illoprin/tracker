@@ -22,6 +22,12 @@ type User struct {
 	CreatedAt       time.Time `bson:"createdAt" json:"createdAt"`
 }
 
+var (
+	RoleAdmin     = 3
+	RoleModerator = 2
+	RoleUser      = 1
+)
+
 func EnsureUserIndices(ctx context.Context, col *mongo.Collection) error {
 
 	// unique index by user login

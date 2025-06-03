@@ -9,9 +9,9 @@ import (
 )
 
 type JWTClaims struct {
-	ID    string
-	Email string
-	Role  int
+	UserID    string
+	SessionID string
+	Role      int
 }
 
 func CreateTokenFromClaims(c JWTClaims) (string, error) {
@@ -21,10 +21,10 @@ func CreateTokenFromClaims(c JWTClaims) (string, error) {
 	}
 
 	claims := jwt.MapClaims{
-		"id":    c.ID,
-		"role":  c.Role,
-		"email": c.Email,
-		"exp":   time.Now().Add(exp).Unix(),
+		"id":      c.UserID,
+		"role":    c.Role,
+		"session": c.SessionID,
+		"exp":     time.Now().Add(exp).Unix(),
 	}
 
 	token := jwt.NewWithClaims(
@@ -32,4 +32,20 @@ func CreateTokenFromClaims(c JWTClaims) (string, error) {
 	)
 
 	return token.SignedString([]byte(os.Getenv(config.TokenSecretEnvName)))
+}
+
+func DecodeToken(token string) (*jwt.Token, *JWTClaims, error) {
+	claims := jwt.MapClaims{}
+	decoded, _, err := jwt.NewParser().ParseUnverified(token, claims)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	claimsStruct := JWTClaims{
+		UserID:    claims["id"].(string),
+		SessionID: claims["session"].(string),
+		Role:      int(claims["role"].(float64)),
+	}
+
+	return decoded, &claimsStruct, nil
 }

@@ -7,7 +7,7 @@ import (
 	"tracker-backend/internal/pkg/logger"
 )
 
-func InitLogger() error {
+func InitLogger() (error, *slog.Logger) {
 	var slogInstance *slog.Logger
 	switch os.Getenv(config.EnvironmentEnvName) {
 	case "local":
@@ -28,5 +28,5 @@ func InitLogger() error {
 	}
 
 	slog.SetDefault(slogInstance)
-	return nil
+	return nil, slogInstance
 }

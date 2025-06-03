@@ -16,7 +16,6 @@ type Playlist struct {
 	Name      string    `bson:"name" json:"name"`
 	IsPublic  bool      `bson:"isPublic" json:"isPublic"`
 	IsDefault bool      `bson:"isDefault" json:"isDefault"`
-	Cover     string    `bson:"cover" json:"cover"`
 	Tracks    []string  `bson:"trackIds" json:"trackIds"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 }

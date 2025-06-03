@@ -52,7 +52,7 @@ func (r *RedisClient) SetJSON(
 	return r.client.Set(ctx, key, data, ttl).Err()
 }
 
-func (r *RedisClient) SetString(
+func (r *RedisClient) SetStringTTL(
 	ctx context.Context,
 	key string, value string,
 	ttl time.Duration,
@@ -89,7 +89,18 @@ func (r *RedisClient) GetJSONArray(
 	return nil
 }
 
-func (r *RedisClient) Delete(
+func (r *RedisClient) GetString(
+	ctx context.Context,
+	key string,
+) (string, error) {
+	data, err := r.client.Get(ctx, key).Result()
+	if err != nil {
+		return "", nil
+	}
+	return data, nil
+}
+
+func (r *RedisClient) Invalidate(
 	ctx context.Context, key string,
 ) error {
 	return r.client.Del(ctx, key).Err()
