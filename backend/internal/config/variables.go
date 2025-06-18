@@ -14,6 +14,7 @@ var (
 
 var (
 	AudioDir   = "audio"
-	CoversDir  = "cover"
+	CoversDir  = "covers"
 	AvatarsDir = "avatars"
+	BannersDir = "banners"
 )

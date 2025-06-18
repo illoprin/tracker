@@ -152,11 +152,13 @@ func (svc *ArtistService) GetAlbums(
 
 	// if user is owner -> return all albums
 	// else return public albums only
-	filter := bson.M{}
+	var filter bson.M = make(bson.M, 3)
 	if !isOwn {
-		filter = bson.M{"artistId": id, "isApproved": true, "isPublic": true}
+		filter["artistId"] = id
+		filter["isApproved"] = true
+		filter["isPublic"] = true
 	} else {
-		filter = bson.M{"artistId": id}
+		filter["artistId"] = id
 	}
 
 	// find albums
@@ -183,28 +185,34 @@ func (svc *ArtistService) GetAlbums(
 func (svc *ArtistService) DeleteByID(
 	ctx context.Context,
 	userId string,
-	id string,
+	artistId string,
 ) error {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.ArtistService.GetAlbums"))
 
-	// flush related data
-	if err := svc.af.FlushArtistData(ctx, id); err != nil {
-		return service.ErrInternal
-	}
-
-	// delete artist document
-	res, err := svc.artistCol.DeleteOne(ctx, bson.M{"ownerId": userId, "id": id})
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return service.ErrNotFound
+	// check artist owner
+	if isOwn, err := svc.oc.IsArtistOwner(ctx, userId, artistId); !isOwn {
+		if err != nil {
+			_logger.Error("failed to check ownership", logger.ErrorAttr(err))
+			return service.ErrInternal
 		}
-		_logger.Error("failed to update user", logger.ErrorAttr(err))
-		return service.ErrInternal
+		return service.ErrForbidden
 	}
 
-	if res.DeletedCount == 0 {
-		return service.ErrNotFound
+	// flush data
+	err := svc.af.FlushArtistData(ctx, artistId)
+	if err != nil {
+		if !errors.Is(err, service.ErrNotFound) {
+			return service.ErrInternal
+		}
+		return err
+	}
+
+	// delete document
+	_, err = svc.artistCol.DeleteOne(ctx, bson.M{"id": artistId})
+	if err != nil {
+		_logger.Error("failed to delete document", logger.ErrorAttr(err))
+		return service.ErrInternal
 	}
 
 	return nil

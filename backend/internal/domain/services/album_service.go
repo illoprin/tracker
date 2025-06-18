@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"mime/multipart"
 	"os"
@@ -106,4 +107,38 @@ func (svc *AlbumService) Create(
 	}
 
 	return &a, err
+}
+
+func (svc *AlbumService) DeleteByID(ctx context.Context, userId, albumId string) error {
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.AlbumService.DeleteByID"))
+
+	// check album owner
+	if isOwn, err := svc.oc.IsAlbumOwner(ctx, userId, albumId); !isOwn {
+		if err != nil {
+			_logger.Error("failed to check ownership", logger.ErrorAttr(err))
+			return service.ErrInternal
+		}
+		return service.ErrForbidden
+	}
+
+	// flush data
+	err := svc.af.FlushAlbumData(ctx, albumId)
+	if err != nil {
+		if !errors.Is(err, service.ErrNotFound) {
+			return service.ErrInternal
+		}
+		return err
+	}
+
+	// delete document
+	_, err = svc.albumsCol.DeleteOne(ctx, bson.M{"id": albumId})
+	if err != nil {
+		if !errors.Is(err, service.ErrNotFound) {
+			return service.ErrInternal
+		}
+		return err
+	}
+
+	return nil
 }

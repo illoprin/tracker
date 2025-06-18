@@ -64,14 +64,21 @@
 | Endpoint                       | Description               | Requirements                                 |
 | ------------------------------ | ------------------------- | -------------------------------------------- |
 | POST `/api/albums`             | Create new album          | Authorization, AlbumCreateRequest            |
-| POST `/api/albums/{id}/tracks` | Create new track          | Authorization, TrackCreateRequest            |
 | GET `/api/albums/{id}`         | Get album data            | Authorization                                |
 | GET `/api/albums/{id}/listens` | Get album listening stats | Authorization                                |
-| GET `/api/albums/{id}/tracks`  | Get album tracks          | Authorization                                |
 | PATCH `/api/albums/{id}`       | Update album              | Authorization, Ownership, AlbumUpdateRequest |
 | DELETE `/api/albums/{id}`      | Delete album and tracks   | Authorization, Ownership                     |
 
-#### Listening
+### Track
+
+| Endpoint                       | Description      | Requirements                      |
+| ------------------------------ | ---------------- | --------------------------------- |
+| POST `/api/albums/{id}/tracks` | Create new track | Authorization, TrackCreateRequest |
+| GET `/api/albums/{id}/tracks`  | Get album tracks | Authorization                     |
+
+### Recommendation
+
+### Listening
 
 ### Moderation
 
@@ -177,7 +184,7 @@ avatar: image
   "name": "string",
   "year": "int",
   "cover": "string",
-  "type": "single|album", 
+  "type": "single|album",
   "isPublic": "bool",
   "isApproved": "bool",
   "moderation": {

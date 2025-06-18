@@ -8,8 +8,7 @@ type AlbumCreateRequest struct {
 }
 
 type AlbumUpdateRequest struct {
-	Name     *string `json:"name" validate:"omitempty,min=3"`
-	Year     *int    `json:"year" validate:"omitempty,year"`
-	Type     *string `json:"type" validate:"omitempty,type"`
-	IsPublic *bool   `json:"isPublic"`
+	Name *string `json:"name" validate:"omitempty,min=3"`
+	Year *int    `json:"year" validate:"omitempty,year"`
+	Type *string `json:"type" validate:"omitempty,type"`
 }

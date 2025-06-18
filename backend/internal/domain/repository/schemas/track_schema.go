@@ -12,8 +12,8 @@ import (
 
 type Track struct {
 	ID        string    `bson:"id" json:"id"`
-	AlbumID   string    `bson:"albumId" json:"albumId"`
 	OwnerID   string    `bson:"ownerId" json:"ownerId"`
+	AlbumID   string    `bson:"albumId" json:"albumId"`
 	Name      string    `bson:"name" json:"name"`
 	Genres    []string  `bson:"genres" json:"genres"`
 	Duration  int       `bson:"duration" json:"duration"`

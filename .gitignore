@@ -5,6 +5,8 @@ backend/tmp
 
 frontend/node_modules
 
+/html.layout
+
 /redis
 /mongo
 
