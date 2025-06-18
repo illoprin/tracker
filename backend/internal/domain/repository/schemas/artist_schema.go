@@ -16,6 +16,7 @@ type Artist struct {
 	Name      string    `bson:"name" json:"name"`
 	Avatar    string    `bson:"avatar" json:"avatar"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	Banner    string    `bson:"banner" json:"banner"`
 }
 
 func EnsureArtistIndices(ctx context.Context, col *mongo.Collection) error {

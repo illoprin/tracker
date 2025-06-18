@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/domain/repository/schemas"
@@ -48,8 +49,12 @@ func (svc *ArtistService) Create(
 	ctx context.Context,
 	userId string,
 	name string,
-	file multipart.File,
-	fileHeader *multipart.FileHeader,
+	avatarFile multipart.File,
+	avatarFileHeader *multipart.FileHeader,
+	hasAvatar bool,
+	bannerFile multipart.File,
+	bannerFileHeader *multipart.FileHeader,
+	hasBanner bool,
 ) (*schemas.Artist, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.ArtistService.Create"))
@@ -65,9 +70,17 @@ func (svc *ArtistService) Create(
 		return nil, service.ErrExists
 	}
 
-	// upload file
-	uploadDir := path.Join(os.Getenv(config.StaticDirEnvName), config.AvatarsDir)
-	avatarPath, _ := storage.UploadFile(fileHeader, &file, uploadDir)
+	// upload files
+	avatarUploadDir := path.Join(os.Getenv(config.StaticDirEnvName), config.AvatarsDir)
+	bannerUploadDir := path.Join(os.Getenv(config.StaticDirEnvName), config.BannersDir)
+	avatarPath := filepath.Join(avatarUploadDir, "avatar_default.jpg")
+	if hasAvatar {
+		avatarPath, _ = storage.UploadFile(avatarFileHeader, &avatarFile, avatarUploadDir)
+	}
+	bannerPath := filepath.Join(bannerUploadDir, "banner_default.jpg")
+	if hasBanner {
+		bannerPath, _ = storage.UploadFile(bannerFileHeader, &bannerFile, bannerUploadDir)
+	}
 
 	// create schema
 	artist := schemas.Artist{
@@ -75,6 +88,7 @@ func (svc *ArtistService) Create(
 		OwnerID:   userId,
 		Name:      name,
 		Avatar:    avatarPath,
+		Banner:    bannerPath,
 		CreatedAt: time.Now(),
 	}
 

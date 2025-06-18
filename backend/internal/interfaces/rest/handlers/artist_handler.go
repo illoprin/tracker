@@ -29,7 +29,7 @@ func (h *ArtistHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(string)
 
-	err := r.ParseMultipartForm(storage.MaxFormSize << 20) // 32 MB
+	err := r.ParseMultipartForm(storage.MaxFormSize)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, response.Error("failed to parse multipart form"))
@@ -43,23 +43,51 @@ func (h *ArtistHandler) Create(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("artist name required"))
 		return
 	}
-	file, fileHeader, err := r.FormFile("avatar")
+
+	// parse avatar avatar
+	avatar, avatarHeader, err := r.FormFile("avatar")
+	hasAvatar := true
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, response.Error("avatar image required"))
-		return
+		hasAvatar = false
 	}
 
 	// validate file
-	err = storage.ValidateFile(fileHeader, storage.AllowedImageExtensions)
+	if hasAvatar {
+		err = storage.ValidateFile(avatarHeader, storage.AllowedImageExtensions)
+		if err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+			return
+		}
+	}
+
+	// parse banner file
+	banner, bannerHeader, err := r.FormFile("banner")
+	hasBanner := true
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, response.Error(err.Error()))
-		return
+		hasBanner = false
+	}
+	if hasBanner {
+		err = storage.ValidateFile(bannerHeader, storage.AllowedImageExtensions)
+		if err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+			return
+		}
 	}
 
 	// execute service function
-	a, err := h.aSvc.Create(ctx, userId, name, file, fileHeader)
+	a, err := h.aSvc.Create(
+		ctx,
+		userId,
+		name,
+		avatar,
+		avatarHeader,
+		hasAvatar,
+		banner,
+		bannerHeader,
+		hasBanner,
+	)
 	if err != nil {
 		if errors.Is(err, service.ErrInternal) {
 			render.Status(r, http.StatusInternalServerError)

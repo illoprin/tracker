@@ -66,7 +66,18 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
+	// mount app routes
 	rest.MountAppRoutes(r, deps)
+
+	// configure static server
+	httpFS := http.FileServer(http.Dir(os.Getenv(config.StaticDirEnvName)))
+	fsHandler := http.StripPrefix("/public",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public, max-age=86400") // 1 день
+			httpFS.ServeHTTP(w, r)
+		}),
+	)
+	r.Handle("/public/*", fsHandler)
 
 	// configure server
 	server := http.Server{

@@ -3,10 +3,14 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"math/rand"
 	"mime/multipart"
 	"os"
 	"path"
+	"path/filepath"
+	"strconv"
 	"time"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/domain/dtos"
@@ -50,7 +54,8 @@ func (svc *AlbumService) Create(
 	userId string,
 	req dtos.AlbumCreateRequest,
 	cover multipart.File,
-	fileHeader *multipart.FileHeader,
+	coverHeader *multipart.FileHeader,
+	hasCover bool,
 ) (*schemas.Album, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.AlbumService.Create"))
@@ -79,16 +84,25 @@ func (svc *AlbumService) Create(
 	}
 
 	// upload file
-	uploadDir := path.Join(os.Getenv(config.StaticDirEnvName), config.CoversDir)
-	coverPath, _ := storage.UploadFile(fileHeader, &cover, uploadDir)
+	coverPath := ""
+	if !hasCover {
+		randomCover := rand.Intn(2)
+		randomCoverFile := fmt.Sprintf("cover_default_%d.jpg", randomCover)
+		coverPath = filepath.Join(os.Getenv(config.StaticDirEnvName), config.CoversDir, randomCoverFile)
+	} else {
+		uploadDir := path.Join(os.Getenv(config.StaticDirEnvName), config.CoversDir)
+		coverPath, _ = storage.UploadFile(coverHeader, &cover, uploadDir)
+	}
 
 	// create schema
+	// WARN: shitcode
+	yearCreated, _ := strconv.Atoi(req.Year)
 	a := schemas.Album{
 		ID:         uuid.NewString(),
 		ArtistID:   req.ArtistID,
 		OwnerID:    userId,
 		Name:       req.Name,
-		Year:       req.Year,
+		Year:       yearCreated,
 		Cover:      coverPath,
 		Type:       req.Type,
 		IsPublic:   false,
