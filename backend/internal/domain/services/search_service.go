@@ -35,8 +35,6 @@ func (svc *SearchService) GlobalSearch(
 	query string,
 	limitTracks int,
 	generalLimit int,
-	userId string,
-	userRole int,
 ) (*dtos.SearchResult, error) {
 	_logger := slog.With(
 		slog.String("func", "services.SearchService.GlobalSearch"),
@@ -60,13 +58,13 @@ func (svc *SearchService) GlobalSearch(
 	// Поиск треков
 	go func() {
 		defer wg.Done()
-		tracks, trackErr = svc.searchTracks(searchCtx, query, limitTracks, userId, userRole)
+		tracks, trackErr = svc.searchTracks(searchCtx, query, limitTracks)
 	}()
 
 	// Поиск альбомов
 	go func() {
 		defer wg.Done()
-		albums, albumErr = svc.searchAlbums(searchCtx, query, generalLimit, userId, userRole)
+		albums, albumErr = svc.searchAlbums(searchCtx, query, generalLimit)
 	}()
 
 	// Поиск исполнителей
@@ -104,8 +102,6 @@ func (svc *SearchService) searchTracks(
 	ctx context.Context,
 	query string,
 	limit int,
-	userId string,
-	userRole int,
 ) ([]dtos.TrackResponse, error) {
 
 	matchTrack := bson.M{"name": bson.M{"$regex": query, "$options": "i"}}
@@ -132,8 +128,6 @@ func (svc *SearchService) searchAlbums(
 	ctx context.Context,
 	query string,
 	limit int,
-	userId string,
-	userRole int,
 ) ([]dtos.AlbumWithStats, error) {
 	matchAlbum := bson.M{
 		"isPublic":   true,
