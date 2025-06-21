@@ -61,20 +61,27 @@
 
 ### Album/Track
 
-| Endpoint                       | Description               | Requirements                                 |
-| ------------------------------ | ------------------------- | -------------------------------------------- |
-| POST `/api/albums`             | Create new album          | Authorization, AlbumCreateRequest            |
-| GET `/api/albums/{id}`         | Get album data            | Authorization                                |
-| GET `/api/albums/{id}/listens` | Get album listening stats | Authorization                                |
-| PATCH `/api/albums/{id}`       | Update album              | Authorization, Ownership, AlbumUpdateRequest |
-| DELETE `/api/albums/{id}`      | Delete album and tracks   | Authorization, Ownership                     |
+| Endpoint                    | Description               | Requirements                                 |
+| --------------------------- | ------------------------- | -------------------------------------------- |
+| POST `/albums`              | Create new album          | Authorization, AlbumCreateRequest            |
+| GET `/albums/{id}`          | Get album data            | Authorization                                |
+| GET `/albums/{id}/listens`  | Get album listening stats | Authorization                                |
+| PATCH `/albums/{id}`        | Update album              | Authorization, Ownership, AlbumUpdateRequest |
+| DELETE `/albums/{id}`       | Delete album and tracks   | Authorization, Ownership                     |
+| POST `/albums/{id}/publish` | Send album to moderation  | Authorization, Ownership                     |
+
+> ℹ️ На фронте есть две кнопки - "Сохранить изменения" и "Отправить на модерацию". Первая ничего не делает, вторая меняет параметр isPublic=true
+
+> 💡 Модерация заключается в том, чтобы изменить isApproved=true и добавить статус модерации
 
 ### Track
 
-| Endpoint                       | Description      | Requirements                      |
-| ------------------------------ | ---------------- | --------------------------------- |
-| POST `/api/albums/{id}/tracks` | Create new track | Authorization, TrackCreateRequest |
-| GET `/api/albums/{id}/tracks`  | Get album tracks | Authorization                     |
+| Endpoint                   | Description        | Requirements                      |
+| -------------------------- | ------------------ | --------------------------------- |
+| POST `/albums/{id}/tracks` | Create new track   | Authorization, TrackCreateRequest |
+| GET `/albums/{id}/tracks`  | Get album tracks   | Authorization                     |
+| GET `/tracks/{id}`         | Get track metadata | Authorization                     |
+| GET `/tracks/{id}/stream`  | Get track file     | Authorization                     |
 
 ### Recommendation
 

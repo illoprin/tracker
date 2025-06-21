@@ -51,3 +51,44 @@ func EnsureAlbumIndices(ctx context.Context, col *mongo.Collection) error {
 	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{artistIDTitleIndex, utils.UniqueIDIndex()})
 	return err
 }
+
+func GetAlbumsAggregationPipeline(match bson.M) bson.A {
+	return bson.A{
+		bson.M{
+			"$match": match,
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "tracks",
+				"localField":   "id",
+				"foreignField": "albumId",
+				"as":           "tracks",
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "artists",
+				"localField":   "artistId",
+				"foreignField": "id",
+				"as":           "artist",
+			},
+		},
+		bson.M{
+			"$unwind": "$artist",
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"trackCount":    bson.M{"$size": "$tracks"},
+				"totalDuration": bson.M{"$sum": "$tracks.duration"},
+				"artistName":    "$artist.name",
+				"artistAvatar":  "$artist.avatar",
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"tracks": 0, // exclude array of tracks from result
+				"artist": 0, // exclude artist metadata from result
+			},
+		},
+	}
+}

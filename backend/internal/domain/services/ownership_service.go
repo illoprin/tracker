@@ -2,10 +2,8 @@ package services
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"tracker-backend/internal/pkg/logger"
-	"tracker-backend/internal/pkg/service"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -65,20 +63,8 @@ func (s *OwnershipService) IsTrackOwner(
 		"userId", userId,
 	)
 
-	// find track and get album id
-	var track struct {
-		AlbumId string `bson:"albumId"`
-	}
-	err := s.tracksCol.FindOne(ctx, bson.M{"id": trackId}).Decode(&track)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, service.ErrNotFound
-		}
-		_logger.Error("failed to find", logger.ErrorAttr(err))
-		return false, err
-	}
 	// count albums with id = albumId ownerId = userId
-	return s.isOwner(ctx, s.albumsCol, userId, track.AlbumId, _logger)
+	return s.isOwner(ctx, s.tracksCol, userId, trackId, _logger)
 }
 
 func (s *OwnershipService) IsArtistOwner(

@@ -35,11 +35,17 @@ func InitDependencies(
 		flusher,
 		ownershipService,
 	)
+	trackSvc := services.NewTrackService(
+		repo.TracksCol,
+		repo.AlbumsCol,
+		ownershipService,
+	)
 
 	return &Dependencies{
 		AuthSvc:   authSvc,
 		UserSvc:   userSvc,
 		ArtistSvc: artistSvc,
 		AlbumSvc:  albumSvc,
+		TrackSvc:  trackSvc,
 	}
 }

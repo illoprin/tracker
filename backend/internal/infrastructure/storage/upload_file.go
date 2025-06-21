@@ -22,9 +22,10 @@ var (
 		".webp": true,
 	}
 	AllowedAudioExtensions = map[string]bool{
-		".mp3": true,
-		".wav": true,
-		".m4a": true,
+		".mp3":  true,
+		".wav":  true,
+		".m4a":  true,
+		".flac": true,
 	}
 )
 

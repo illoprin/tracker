@@ -33,3 +33,52 @@ func EnsureTrackIndices(ctx context.Context, col *mongo.Collection) error {
 	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{nameAlbumIndex, utils.UniqueIDIndex()})
 	return err
 }
+
+func GetTracksDetailsPipeline(match bson.M) bson.A {
+	return bson.A{
+		bson.M{
+			"$match": match,
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "albums",
+				"localField":   "albumId",
+				"foreignField": "id",
+				"as":           "album",
+			},
+		},
+		bson.M{
+			"$unwind": bson.M{
+				"path":                       "$album",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "artists",
+				"localField":   "album.artistId",
+				"foreignField": "id",
+				"as":           "artist",
+			},
+		},
+		bson.M{
+			"$unwind": bson.M{
+				"path":                       "$artist",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"id":         1,
+				"name":       1,
+				"albumId":    1,
+				"duration":   1,
+				"genres":     1,
+				"artistId":   "$album.artistId",
+				"albumName":  "$album.name",
+				"artistName": "$artist.name",
+				"cover":      "$album.cover",
+			},
+		},
+	}
+}

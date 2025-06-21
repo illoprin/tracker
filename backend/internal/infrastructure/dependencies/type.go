@@ -7,4 +7,5 @@ type Dependencies struct {
 	UserSvc   *services.UserService
 	ArtistSvc *services.ArtistService
 	AlbumSvc  *services.AlbumService
+	TrackSvc  *services.TrackService
 }

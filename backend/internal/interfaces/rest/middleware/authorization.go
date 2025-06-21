@@ -2,12 +2,10 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"net/http"
 	"tracker-backend/internal/domain/repository/schemas"
 	"tracker-backend/internal/interfaces/rest/utils/response"
-	"tracker-backend/internal/pkg/service"
 	authToken "tracker-backend/internal/pkg/token"
 
 	"github.com/go-chi/render"
@@ -43,11 +41,6 @@ func Authorization(p AuthorizationProvider) MiddlewareFunc {
 			// validate user session
 			_, claims, valid, err := p.Verify(r.Context(), token)
 			if err != nil {
-				if errors.Is(err, service.ErrInternal) {
-					render.Status(r, http.StatusInternalServerError)
-					render.JSON(w, r, response.Error(err.Error()))
-					return
-				}
 				render.Status(r, http.StatusForbidden)
 				render.JSON(w, r, response.Error("authorization required"))
 				return

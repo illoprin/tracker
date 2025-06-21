@@ -186,11 +186,6 @@ func (h *ArtistHandler) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(string)
 	id := chi.URLParam(r, "id")
-	if id == "" {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, response.Error("url param required"))
-		return
-	}
 
 	// execute service function
 	err := h.aSvc.DeleteByID(ctx, userId, id)

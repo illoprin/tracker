@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 	"tracker-backend/internal/config"
+	"tracker-backend/internal/domain/dtos"
 	"tracker-backend/internal/domain/repository/schemas"
 	"tracker-backend/internal/infrastructure/storage"
 	"tracker-backend/internal/pkg/logger"
@@ -154,7 +155,7 @@ func (svc *ArtistService) GetAlbums(
 	ctx context.Context,
 	userId string,
 	id string,
-) ([]schemas.Album, error) {
+) ([]dtos.AlbumWithStats, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.ArtistService.GetAlbums"))
 
@@ -166,34 +167,62 @@ func (svc *ArtistService) GetAlbums(
 
 	// if user is owner -> return all albums
 	// else return public albums only
-	var filter bson.M = make(bson.M, 3)
+	var match bson.M = make(bson.M, 3)
 	if !isOwn {
-		filter["artistId"] = id
-		filter["isApproved"] = true
-		filter["isPublic"] = true
+		match["artistId"] = id
+		match["isApproved"] = true
+		match["isPublic"] = true
 	} else {
-		filter["artistId"] = id
+		match["artistId"] = id
 	}
 
-	// find albums
-	cur, err := svc.albumsCol.Find(ctx, filter)
+	// prepare aggregation pipeline
+	pipeline := schemas.GetAlbumsAggregationPipeline(match)
+
+	// sort albums by creating year
+	pipeline = append(pipeline, bson.M{"$sort": bson.M{"year": -1}})
+
+	// execute aggregation
+	cursor, err := svc.albumsCol.Aggregate(ctx, pipeline)
 	if err != nil {
-		_logger.Error("failed to find albums", logger.ErrorAttr(err))
+		_logger.Error("failed to aggregate album stats", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+	defer cursor.Close(ctx)
+
+	// get next cursor
+	if !cursor.Next(ctx) {
+		return []dtos.AlbumWithStats{}, nil
+	}
+
+	// decode result
+	var result []struct {
+		schemas.Album `bson:",inline"`
+		TrackCount    int    `bson:"trackCount" json:"trackCount"`
+		TotalDuration int    `bson:"totalDuration" json:"totalDuration"`
+		ArtistName    string `bson:"artistName" json:"artistName"`
+		ArtistAvatar  string `bson:"artistAvatar" json:"artistAvatar"`
+	}
+
+	if err := cursor.All(ctx, &result); err != nil {
+		_logger.Error("failed to decode album stats", logger.ErrorAttr(err))
 		return nil, service.ErrInternal
 	}
 
-	if cur.RemainingBatchLength() < 1 {
-		return []schemas.Album{}, nil
+	albumsWithStats := make([]dtos.AlbumWithStats, 0, len(result))
+	for _, a := range result {
+		// create response struct
+		aws := dtos.AlbumWithStats{
+			Album:         a.Album,
+			TrackCount:    a.TrackCount,
+			TotalDuration: a.TotalDuration,
+			ArtistName:    a.ArtistName,
+			ArtistAvatar:  a.ArtistAvatar,
+		}
+		albumsWithStats = append(albumsWithStats, aws)
 	}
 
-	// decode cursor
-	var all []schemas.Album
-	if err := cur.Decode(&all); err != nil {
-		_logger.Error("failed to decode cursor", logger.ErrorAttr(err))
-		return nil, service.ErrInternal
-	}
-
-	return all, nil
+	return albumsWithStats, nil
 }
 
 func (svc *ArtistService) DeleteByID(

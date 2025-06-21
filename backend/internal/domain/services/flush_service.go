@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/pkg/logger"
 	"tracker-backend/internal/pkg/service"
@@ -115,18 +116,14 @@ func (svc *FlushService) FlushAlbumData(ctx context.Context, id string) error {
 		}
 	}
 
-	// find artist to get files path
-	if err := svc.alc.FindOne(ctx, bson.M{"id": id}).Decode(&album); err != nil {
-		_logger.Error("failed to find album", logger.ErrorAttr(err))
-		return err
-	}
-
 	// delete cover
 	fileName := filepath.Base(album.CoverPath)
 	filePath := filepath.Join(os.Getenv(config.StaticDirEnvName), config.CoversDir, fileName)
-	if err := os.Remove(filePath); err != nil {
-		_logger.Error("failed to delete album cover", logger.ErrorAttr(err))
-		return err
+	if !strings.Contains(fileName, "default") {
+		if err := os.Remove(filePath); err != nil {
+			_logger.Error("failed to delete album cover", logger.ErrorAttr(err))
+			return err
+		}
 	}
 
 	return nil
@@ -201,17 +198,21 @@ func (svc *FlushService) FlushArtistData(ctx context.Context, id string) error {
 	// delete avatar
 	fileName := filepath.Base(artist.AvatarPath)
 	filePath := filepath.Join(os.Getenv(config.StaticDirEnvName), config.AvatarsDir, fileName)
-	if err := os.Remove(filePath); err != nil {
-		_logger.Error("failed to delete avatar", logger.ErrorAttr(err))
-		return err
+	if !strings.Contains(fileName, "default") {
+		if err := os.Remove(filePath); err != nil {
+			_logger.Error("failed to delete avatar", logger.ErrorAttr(err))
+			return err
+		}
 	}
 
 	// delete banner
 	fileName = filepath.Base(artist.BannerPath)
 	filePath = filepath.Join(os.Getenv(config.StaticDirEnvName), config.BannersDir, fileName)
-	if err := os.Remove(filePath); err != nil {
-		_logger.Error("failed to delete avatar", logger.ErrorAttr(err))
-		return err
+	if !strings.Contains(fileName, "default") {
+		if err := os.Remove(filePath); err != nil {
+			_logger.Error("failed to delete avatar", logger.ErrorAttr(err))
+			return err
+		}
 	}
 
 	return nil

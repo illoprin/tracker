@@ -11,10 +11,9 @@ import (
 
 func MountAppRoutes(r chi.Router, deps *dependencies.Dependencies) chi.Router {
 	authMiddleware := middleware.Authorization(deps.AuthSvc)
-	// PERF
-	r.Mount("/genres", routers.RegisterGenreRoutes())
-	r.Route("/api", func(ar chi.Router) {
+	r.Route("/api/v1", func(ar chi.Router) {
 		ar.Get("/ping", handlers.Ping)
+		r.Mount("/genres", routers.RegisterGenreRoutes())
 		// PERF
 		ar.Mount("/auth", routers.RegisterAuthRoutes(deps.AuthSvc))
 		// PERF
@@ -29,7 +28,17 @@ func MountAppRoutes(r chi.Router, deps *dependencies.Dependencies) chi.Router {
 			deps.ArtistSvc,
 			authMiddleware,
 		))
-		ar.Mount("/albums", routers.RegisterAlbumRoutes(deps.AlbumSvc, authMiddleware))
+
+		ar.Mount("/albums", routers.RegisterAlbumRoutes(
+			deps.AlbumSvc,
+			deps.TrackSvc,
+			authMiddleware,
+		))
+
+		ar.Mount("/tracks", routers.RegisterTrackRoutes(
+			deps.TrackSvc,
+			authMiddleware,
+		))
 	})
 	return r
 }
