@@ -38,6 +38,7 @@ type Album struct {
 	IsApproved bool            `bson:"isApproved" json:"isApproved"`
 	Moderation AlbumModeration `bson:"moderation" json:"moderation"`
 	CreatedAt  time.Time       `bson:"createdAt" json:"createdAt"`
+	UpdatedAt  time.Time       `bson:"updatedAt" json:"updatedAt"`
 }
 
 func EnsureAlbumIndices(ctx context.Context, col *mongo.Collection) error {

@@ -40,6 +40,11 @@ func InitDependencies(
 		repo.AlbumsCol,
 		ownershipService,
 	)
+	searchSvc := services.NewSearchService(
+		repo.TracksCol,
+		repo.AlbumsCol,
+		repo.ArtistsCol,
+	)
 
 	return &Dependencies{
 		AuthSvc:   authSvc,
@@ -47,5 +52,6 @@ func InitDependencies(
 		ArtistSvc: artistSvc,
 		AlbumSvc:  albumSvc,
 		TrackSvc:  trackSvc,
+		SearchSvc: searchSvc,
 	}
 }

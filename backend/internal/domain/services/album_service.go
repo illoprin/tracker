@@ -111,6 +111,7 @@ func (svc *AlbumService) Create(
 			Comment: "auto approve",
 		},
 		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	_, err = svc.albumsCol.InsertOne(ctx, a)
@@ -401,6 +402,7 @@ func (svc *AlbumService) updateAlbum(ctx context.Context, albumId string, set bs
 	filter := bson.M{"id": albumId}
 
 	// update moderation status
+	set["updatedAt"] = time.Now()
 	set["isPublic"] = false
 	set["isApproved"] = false
 	set["moderation.status"] = schemas.AlbumStatusPending
@@ -466,7 +468,6 @@ func (svc *AlbumService) UpdateByID(
 
 	// update cover if needed
 	if hasCover {
-
 		// delete old cover file if needed
 		oldFileName := filepath.Base(a.Cover)
 		oldFilePath := filepath.Join(
@@ -491,15 +492,20 @@ func (svc *AlbumService) UpdateByID(
 		}
 	}
 
-	// check albums with same name of this user
-	count, err := svc.albumsCol.CountDocuments(ctx, bson.M{"name": req.Name, "ownerId": userId})
-	if err != nil {
-		_logger.Error("failed count documents", logger.ErrorAttr(err))
-		return service.ErrInternal
+	if len(updates) <= 0 {
+		return nil
 	}
 
-	if count > 0 {
-		return service.ErrExists
+	if updates["name"] != "" {
+		// check albums with same name of this user
+		count, err := svc.albumsCol.CountDocuments(ctx, bson.M{"name": req.Name, "ownerId": userId})
+		if err != nil {
+			_logger.Error("failed count documents", logger.ErrorAttr(err))
+			return service.ErrInternal
+		}
+		if count > 0 {
+			return service.ErrExists
+		}
 	}
 
 	// apply updates

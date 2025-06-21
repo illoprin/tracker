@@ -106,6 +106,7 @@ func (svc *TrackService) PushTrack(
 		ctx,
 		bson.M{"id": req.AlbumID},
 		bson.M{"$set": bson.M{
+			"updatedAt":          time.Now(),
 			"isPublic":           false,
 			"isApproved":         false,
 			"moderation.status":  schemas.AlbumStatusPending,

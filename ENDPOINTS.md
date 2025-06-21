@@ -14,7 +14,7 @@
 
 | Endpoint            | Description                    | Status          |
 | ------------------- | ------------------------------ | --------------- |
-| GET `/search?query` | Search tracks, albums, artists | Not Implemented |
+| GET `/search?query=?&limit=?` | Search tracks, albums, artists | Not Implemented |
 
 ### Genre
 

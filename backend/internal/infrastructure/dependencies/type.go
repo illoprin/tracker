@@ -8,4 +8,5 @@ type Dependencies struct {
 	ArtistSvc *services.ArtistService
 	AlbumSvc  *services.AlbumService
 	TrackSvc  *services.TrackService
+	SearchSvc *services.SearchService
 }
