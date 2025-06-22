@@ -31,19 +31,20 @@ type AlbumFlusher interface {
 type AlbumService struct {
 	albumsCol *mongo.Collection
 	tracksCol *mongo.Collection
+	usersCol  *mongo.Collection
 	af        AlbumFlusher
 	oc        OwnershipChecker
 }
 
 func NewAlbumService(
-	albumsCol *mongo.Collection,
-	tracksCol *mongo.Collection,
+	albumsCol, tracksCol, usersCol *mongo.Collection,
 	albumFlusher AlbumFlusher,
 	ownershipChecker OwnershipChecker,
 ) *AlbumService {
 	return &AlbumService{
 		albumsCol: albumsCol,
 		tracksCol: tracksCol,
+		usersCol:  usersCol,
 		af:        albumFlusher,
 		oc:        ownershipChecker,
 	}
@@ -397,7 +398,101 @@ func (svc *AlbumService) Publish(
 	return nil
 }
 
+func (svc *AlbumService) GetLiked(
+	ctx context.Context,
+	userId string,
+) ([]dtos.AlbumWithStats, error) {
+
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.AlbumService.GetLiked"))
+
+	// get liked albums ids
+	var u struct {
+		LikedAlbums []string `bson:"likedAlbums"`
+	}
+	err := svc.usersCol.FindOne(ctx, bson.M{"id": userId}).Decode(&u)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, service.ErrNotFound
+		}
+		_logger.Error("failed to find user", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	// prepare aggregation pipeline
+	filter := bson.M{"id": bson.M{"$in": u.LikedAlbums}}
+	pipeline := schemas.GetAlbumsAggregationPipeline(filter)
+
+	// execute aggregation
+	cursor, err := svc.albumsCol.Aggregate(ctx, pipeline)
+	if err != nil {
+		_logger.Error("failed to aggregate", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+	defer cursor.Close(ctx)
+
+	// decode result
+	var result []struct {
+		schemas.Album `bson:",inline"`
+		TrackCount    int    `bson:"trackCount" json:"trackCount"`
+		TotalDuration int    `bson:"totalDuration" json:"totalDuration"`
+		ArtistName    string `bson:"artistName" json:"artistName"`
+		ArtistAvatar  string `bson:"artistAvatar" json:"artistAvatar"`
+	}
+	if err := cursor.All(ctx, &result); err != nil {
+		_logger.Error("failed to decode albums", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	albumsWithStats := make([]dtos.AlbumWithStats, 0, len(result))
+	for _, a := range result {
+		// create response struct
+		aws := dtos.AlbumWithStats{
+			Album:         a.Album,
+			TrackCount:    a.TrackCount,
+			TotalDuration: a.TotalDuration,
+			ArtistName:    a.ArtistName,
+			ArtistAvatar:  a.ArtistAvatar,
+		}
+		albumsWithStats = append(albumsWithStats, aws)
+	}
+
+	return albumsWithStats, nil
+}
+
+func (svc *AlbumService) Like(
+	ctx context.Context,
+	userId string, userRole int, albumId string,
+) error {
+
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.AlbumService.Like"))
+
+	// check access to album
+	_, err := svc.GetByID(ctx, userId, userRole, albumId)
+	if err != nil {
+		return err
+	}
+
+	// push album to set
+	updates := bson.M{
+		"$addToSet": bson.M{"likedAlbums": albumId},
+	}
+	_, err = svc.usersCol.UpdateOne(
+		ctx,
+		bson.M{"id": userId},
+		updates,
+	)
+	if err != nil {
+		_logger.Error("failed to update album status", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+
+	return nil
+}
+
 func (svc *AlbumService) updateAlbum(ctx context.Context, albumId string, set bson.M) error {
+
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.AlbumService.updateAlbum"))
 

@@ -220,6 +220,52 @@ func (h *AlbumHandler) UpdateByID(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusNoContent)
 }
 
+func (h *AlbumHandler) Like(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey).(string)
+	userRole := ctx.Value(middleware.UserRoleKey).(int)
+	id := chi.URLParam(r, "id")
+
+	// execute service function
+	err := h.aSvc.Like(ctx, userId, userRole, id)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else if errors.Is(err, service.ErrForbidden) {
+			render.Status(r, http.StatusForbidden)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return result
+	render.Status(r, http.StatusNoContent)
+}
+
+func (h *AlbumHandler) GetLiked(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey).(string)
+
+	// execute service function
+	a, err := h.aSvc.GetLiked(ctx, userId)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return result
+	render.JSON(w, r, a)
+}
+
 func (h *AlbumHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	// get context keys
 	ctx := r.Context()

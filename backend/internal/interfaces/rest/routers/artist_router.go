@@ -16,7 +16,9 @@ func RegisterArtistRoutes(artistSvc *services.ArtistService, albumSvc *services.
 	r.Post("/", h.Create)
 
 	r.Get("/my", h.GetMy)
+	r.Get("/liked", h.GetLiked)
 	r.Get("/{id}", h.GetByID)
+	r.Post("/{id}/like", h.Like)
 	r.Get("/{id}/stats", h.GetStats)
 	r.Get("/{id}/albums", h.GetAlbums)
 	r.Post("/{id}/album", h.PushAlbum)

@@ -1,6 +1,6 @@
 # Tracker API
 
-> ℹ️ All API endpoints starts with `/api` prefix
+> ℹ️ All API endpoints starts with `/api/v1` prefix
 
 ## Endpoints
 
@@ -12,9 +12,9 @@
 
 ### Search
 
-| Endpoint                                             | Description                    | Status          |
-| ---------------------------------------------------- | ------------------------------ | --------------- |
-| GET `/search?query=string&limitTracks=int&limit=int` | Search tracks, albums, artists | Not Implemented |
+| Endpoint                                             | Description                    |
+| ---------------------------------------------------- | ------------------------------ |
+| GET `/search?query=string&limitTracks=int&limit=int` | Search tracks, albums, artists |
 
 ### Genre
 
@@ -48,6 +48,7 @@
 | POST `/artists`                    | Create new artist              | Authorization, ArtistCreateRequest           |
 | GET `/artists/my`                  | Get my artists                 | Authorization                                |
 | GET `/artists/{id}`                | Get artist info                | Authorization                                |
+| POST `/artists/{id}/like`          | Like artist                    | Authorization                                |
 | GET `/artists/{id}/stats`          | Get listening statistics       | Authorization                                |
 | GET `/artists/{id}/albums`         | Get artist's albums            | Authorization                                |
 | POST `/artists/{id}/album`         | Create new album for artist    | Authorization, Ownership, AlbumCreateRequest |
@@ -65,6 +66,7 @@
 | Endpoint                    | Description               | Requirements                                 |
 | --------------------------- | ------------------------- | -------------------------------------------- |
 | GET `/albums/{id}`          | Get album data            | Authorization                                |
+| POST `/albums/{id}/like`    | Like album                | Authorization                                |
 | GET `/albums/{id}/listens`  | Get album listening stats | Authorization                                |
 | PATCH `/albums/{id}`        | Update album              | Authorization, Ownership, AlbumUpdateRequest |
 | DELETE `/albums/{id}`       | Delete album and tracks   | Authorization, Ownership                     |
@@ -72,7 +74,7 @@
 
 > ℹ️ На фронте есть две кнопки - "Сохранить изменения" и "Отправить на модерацию". Первая ничего не делает, вторая меняет параметр isPublic=true
 
-> 💡 Модерация заключается в том, чтобы изменить isApproved=true и добавить статус модерации
+> 💡 Модерация заключается в том, чтобы изменить isApproved=true и добавить информацию по модерации
 
 ### Track
 
@@ -96,9 +98,21 @@
 
 ### Playlist
 
+| Endpoint                                  | Description                | Requirements                         |
+| ----------------------------------------- | -------------------------- | ------------------------------------ |
+| POST `/playlists`                         | Create new playlist        | Authorization, PlaylistCreateRequest |
+| GET `/playlists/{id}/tracks`              | Get playlist track list    | Authorization                        |
+| GET `/playlists/my`                       | Get user's playlist        | Authorization                        |
+| PATCH `/playlists/{id}`                   | Update playlist metadata   | Authorization, PlaylistUpdateRequest |
+| PATCH `/playlists/{id}/tracks/{trackId}`  | Push track to playlist     | Authorization, Ownership             |
+| DELETE `/playlists/{id}/tracks/{trackId}` | Remove track from playlist | Authorization, Ownership             |
+| DELETE `/playlists/{id}`                  | Delete playlist            | Authorization, Ownership             |
+
 ## Models
 
 ### User
+
+#### Schema
 
 ```json
 {
@@ -145,6 +159,8 @@
 
 ### Artist
 
+#### Schema
+
 ```json
 {
   "id": "id",
@@ -187,6 +203,8 @@ avatar: image
 ```
 
 ### Album
+
+#### Schema
 
 ```json
 {
@@ -235,4 +253,41 @@ isPublic: bool
   "status": "approved|rejected",
   "comment": "string"
 }
+```
+
+### Playlist
+
+#### Schema
+
+```json
+{
+  "id": "id",
+  "ownerId": "id",
+  "name": "string",
+  "description": "string",
+  "cover": "string", // path to file
+  "isDefault": "bool",
+  "isPublic": "bool",
+  "trackIds": "[]string",
+  "createdAt": "ISODate",
+  "updatedAt": "ISODate"
+}
+```
+
+#### Create Request
+
+```http
+name: string
+description: string
+isPublic: 1|0|nil
+cover: image
+```
+
+#### Update Request
+
+```http
+name?: string
+description?: string
+isPublic?: 1|0|nil
+cover?: image
 ```

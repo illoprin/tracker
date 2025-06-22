@@ -38,12 +38,14 @@ func InitDependencies(
 	artistSvc := services.NewArtistService(
 		repo.ArtistsCol,
 		repo.AlbumsCol,
+		repo.UsersCol,
 		flusher,
 		ownershipService,
 	)
 	albumSvc := services.NewAlbumService(
 		repo.AlbumsCol,
 		repo.TracksCol,
+		repo.UsersCol,
 		flusher,
 		ownershipService,
 	)

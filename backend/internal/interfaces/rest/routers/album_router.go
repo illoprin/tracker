@@ -25,9 +25,11 @@ func RegisterAlbumRoutes(
 		r.Post("/{id}/moderate", h.Moderate)
 	})
 
+	r.Get("/liked", h.GetLiked)
 	r.Get("/{id}", h.GetByID)
 	r.Patch("/{id}", h.UpdateByID)
 	r.Delete("/{id}", h.DeleteByID)
+	r.Post("/{id}/like", h.Like)
 	r.Post("/{id}/publish", h.Publish)
 	r.Post("/{id}/tracks", h.CreateTrack)
 	r.Get("/{id}/tracks", h.GetTracksByAlbumID)

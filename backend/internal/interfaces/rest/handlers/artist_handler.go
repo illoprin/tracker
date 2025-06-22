@@ -252,6 +252,49 @@ func (h *ArtistHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusNotImplemented)
 }
 
+func (h *ArtistHandler) Like(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey).(string)
+	id := chi.URLParam(r, "id")
+
+	// execute service function
+	err := h.aSvc.Like(ctx, userId, id)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return result
+	render.Status(r, http.StatusNoContent)
+}
+
+func (h *ArtistHandler) GetLiked(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey).(string)
+
+	// execute service function
+	a, err := h.aSvc.GetLiked(ctx, userId)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return result
+	render.JSON(w, r, a)
+}
+
 func (h *ArtistHandler) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	// get context keys
 	ctx := r.Context()

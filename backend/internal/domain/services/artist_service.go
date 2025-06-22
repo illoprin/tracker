@@ -28,19 +28,20 @@ type ArtistFlusher interface {
 type ArtistService struct {
 	artistCol *mongo.Collection
 	albumsCol *mongo.Collection
+	usersCol  *mongo.Collection
 	af        ArtistFlusher
 	oc        OwnershipChecker
 }
 
 func NewArtistService(
-	artistCol *mongo.Collection,
-	albumsCol *mongo.Collection,
+	artistCol, albumsCol, usersCol *mongo.Collection,
 	artistFlusher ArtistFlusher,
 	ownershipChecker OwnershipChecker,
 ) *ArtistService {
 	return &ArtistService{
 		artistCol: artistCol,
 		albumsCol: albumsCol,
+		usersCol:  usersCol,
 		af:        artistFlusher,
 		oc:        ownershipChecker,
 	}
@@ -48,8 +49,7 @@ func NewArtistService(
 
 func (svc *ArtistService) Create(
 	ctx context.Context,
-	userId string,
-	name string,
+	userId, name string,
 	avatarFile multipart.File,
 	avatarFileHeader *multipart.FileHeader,
 	hasAvatar bool,
@@ -153,8 +153,7 @@ func (svc *ArtistService) GetByID(
 
 func (svc *ArtistService) GetAlbums(
 	ctx context.Context,
-	userId string,
-	id string,
+	userId, id string,
 ) ([]dtos.AlbumWithStats, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.ArtistService.GetAlbums"))
@@ -225,10 +224,84 @@ func (svc *ArtistService) GetAlbums(
 	return albumsWithStats, nil
 }
 
-func (svc *ArtistService) DeleteByID(
+func (svc *ArtistService) GetLiked(
 	ctx context.Context,
 	userId string,
-	artistId string,
+) ([]schemas.Artist, error) {
+
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.ArtistService.GetLiked"))
+
+	// get liked artists id
+	var u struct {
+		LikedArtists []string `bson:"likedArtists"`
+	}
+	err := svc.usersCol.FindOne(ctx, bson.M{"id": userId}).Decode(&u)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, service.ErrNotFound
+		}
+		_logger.Error("failed to find user", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	// find many
+	filter := bson.M{"id": bson.M{"$in": u.LikedArtists}}
+	cursor, err := svc.artistCol.Find(ctx, filter)
+	if err != nil {
+		_logger.Error("failed to find artists", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+	defer cursor.Close(ctx)
+
+	if cursor.RemainingBatchLength() < 1 {
+		return []schemas.Artist{}, nil
+	}
+
+	// decode cursor
+	var artists []schemas.Artist
+	if err := cursor.All(ctx, &artists); err != nil {
+		_logger.Error("failed to decode cursor", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	return artists, nil
+}
+
+func (svc *ArtistService) Like(
+	ctx context.Context,
+	userId, artistId string,
+) error {
+
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.ArtistService.LikeArtist"))
+
+	// check artist existence
+	count, err := svc.artistCol.CountDocuments(ctx, bson.M{"id": artistId})
+	if err != nil {
+		_logger.Error("failed count documents", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+	if count < 1 {
+		return service.ErrNotFound
+	}
+
+	// push artist id to set
+	updates := bson.M{
+		"$addToSet": bson.M{"likedArtists": artistId},
+	}
+	_, err = svc.usersCol.UpdateOne(ctx, bson.M{"id": userId}, updates)
+	if err != nil {
+		_logger.Error("failed to update", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+
+	return nil
+}
+
+func (svc *ArtistService) DeleteByID(
+	ctx context.Context,
+	userId, artistId string,
 ) error {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.ArtistService.GetAlbums"))
