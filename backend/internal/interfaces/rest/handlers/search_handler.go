@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"tracker-backend/internal/domain/services"
@@ -32,6 +33,8 @@ func (h *SearchHandler) GlobalSearch(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error("search query is required"))
 		return
 	}
+
+	slog.Debug("search query", slog.String("query", query))
 
 	// parse limits
 	limitTracks, err := strconv.Atoi(r.URL.Query().Get("limitTracks"))

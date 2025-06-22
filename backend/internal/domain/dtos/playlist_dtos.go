@@ -10,10 +10,9 @@ type PlaylistCreateRequest struct {
 }
 
 type PlaylistUpdateRequest struct {
-	Name        *string `json:"name" validate:"omitempty,min=1,max=100"`
-	Description *string `json:"description" validate:"omitempty,max=500"`
-	Cover       *string `json:"cover"` // base64 или путь
-	IsPublic    *bool   `json:"isPublic"`
+	Name        string `json:"name" validate:"omitempty,min=1,max=100"`
+	Description string `json:"description" validate:"omitempty,max=500"`
+	IsPublic    string `json:"isPublic"`
 }
 
 type PlaylistResponse struct {

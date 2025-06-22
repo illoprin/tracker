@@ -11,7 +11,7 @@ import (
 	"tracker-backend/internal/domain/utils"
 	"tracker-backend/internal/pkg/logger"
 	"tracker-backend/internal/pkg/service"
-	"tracker-backend/internal/pkg/token"
+	authToken "tracker-backend/internal/pkg/token"
 
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -19,18 +19,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type PlaylistCreator interface {
+	CreateDefault(
+		ctx context.Context,
+		userId string,
+	) (string, error)
+}
+
 type AuthorizationService struct {
 	userCol *mongo.Collection
 	s       SessionProvider
+	p       PlaylistCreator
 }
 
 var (
 	sessionTTL = time.Hour * 24 * 31
 )
-
-type PlaylistCreator interface {
-	CreateDefault(context.Context, string, dtos.PlaylistCreateRequest) (*schemas.Playlist, error)
-}
 
 type SessionProvider interface {
 	SetStringTTL(
@@ -45,11 +49,16 @@ type SessionProvider interface {
 	Invalidate(context.Context, string) error
 }
 
-func NewAuthorizationService(userCol *mongo.Collection, s SessionProvider) *AuthorizationService {
+func NewAuthorizationService(
+	userCol *mongo.Collection,
+	s SessionProvider,
+	p PlaylistCreator,
+) *AuthorizationService {
 	slog.Info("auth service")
 	return &AuthorizationService{
 		userCol: userCol,
 		s:       s,
+		p:       p,
 	}
 }
 
@@ -110,6 +119,24 @@ func (svc *AuthorizationService) Register(ctx context.Context, req dtos.Register
 	if err != nil {
 		slog.Error("failed to insert", logger.ErrorAttr(err))
 		return nil, service.ErrInternal
+	}
+
+	// create default playlist
+	playlistId, err := svc.p.CreateDefault(ctx, user.ID)
+	user.LikedPlaylistId = playlistId
+	if err != nil {
+		_logger.Warn("failed to create default playlist", logger.ErrorAttr(err))
+		return &user, err
+	}
+
+	// update user default playlist id
+	_, err = svc.userCol.UpdateOne(ctx,
+		bson.M{"id": user.ID},
+		bson.M{"$set": bson.M{"likedPlaylistId": playlistId}},
+	)
+	if err != nil {
+		_logger.Warn("failed to update user liked playlist id", logger.ErrorAttr(err))
+		return &user, err
 	}
 
 	return &user, nil

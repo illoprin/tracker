@@ -332,11 +332,13 @@ func (svc *AlbumService) GetTracks(
 		return nil, err
 	}
 
-	// execute aggregation
+	// prepare aggregation pipeline
 	match := bson.M{
 		"albumId": id,
 	}
-	pipeline := schemas.GetTracksDetailsPipeline(match)
+	pipeline := schemas.GetTracksDetailsPipeline(match, bson.M{})
+
+	// execute aggregation
 	cursor, err := svc.tracksCol.Aggregate(ctx, pipeline)
 	if err != nil {
 		_logger.Error("failed to aggregate tracks with details", logger.ErrorAttr(err))

@@ -2,10 +2,13 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"mime/multipart"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 	"tracker-backend/internal/config"
 	"tracker-backend/internal/domain/dtos"
@@ -35,6 +38,44 @@ func NewPlaylistService(
 		tracksCol:    tracksCol,
 		usersCol:     usersCol,
 	}
+}
+
+func (svc *PlaylistService) CreateDefault(
+	ctx context.Context,
+	userId string,
+) (string, error) {
+
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.PlaylistService.Create"))
+
+	coverPath := filepath.Join(
+		os.Getenv(config.StaticDirEnvName),
+		config.PlaylistsCoversDir,
+		"liked_playlist_default.jpg",
+	)
+
+	// define document
+	p := schemas.Playlist{
+		ID:          uuid.NewString(),
+		OwnerID:     userId,
+		Name:        "Мой выбор",
+		Description: "Здесь ваши любимые песни",
+		Cover:       coverPath,
+		IsDefault:   true,
+		IsPublic:    false,
+		TrackIDs:    []string{},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	// insert document
+	_, err := svc.playlistsCol.InsertOne(ctx, p)
+	if err != nil {
+		_logger.Error("failed to insert document", logger.ErrorAttr(err))
+		return "", service.ErrInternal
+	}
+
+	return p.ID, nil
 }
 
 func (svc *PlaylistService) Create(
@@ -130,8 +171,8 @@ func (svc *PlaylistService) GetMetadata(
 	}
 
 	// check ownership and isPublic flag
-	if p.IsPublic == false && userId != p.OwnerInfo.ID {
-		return nil, service.ErrForbidden
+	if !p.IsPublic && userId != p.OwnerInfo.ID {
+		return nil, service.ErrNotFound
 	}
 
 	// TODO: set cover by last track album cover
@@ -142,13 +183,81 @@ func (svc *PlaylistService) GetMetadata(
 func (svc *PlaylistService) Update(
 	ctx context.Context,
 	userId string,
+	playlistId string,
 	req dtos.PlaylistUpdateRequest,
+	cover *multipart.File,
+	coverHeader *multipart.FileHeader,
+	hasCover bool,
 ) (*dtos.PlaylistResponse, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.PlaylistService.Update"))
-	_ = _logger
 
-	return nil, nil
+	// get playlist
+	filter := bson.M{"id": playlistId, "ownerId": userId, "isDefault": false}
+	var p struct {
+		Cover string `bson:"cover"`
+	}
+	err := svc.playlistsCol.FindOne(ctx, filter).Decode(&p)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, service.ErrNotFound
+		}
+		_logger.Error("failed to get playlist", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	// define updates
+	updates := bson.M{}
+	if req.Name != "" {
+		updates["name"] = req.Name
+	}
+	if req.Description != "" {
+		updates["description"] = req.Description
+	}
+	if req.IsPublic != "" {
+		updates["isPublic"] = req.IsPublic == "1"
+	}
+
+	// update cover if needed
+	if hasCover {
+		// remove old file
+		if p.Cover != "" && !strings.Contains(p.Cover, "default") {
+			oldCoverFile := filepath.Join(
+				os.Getenv(config.StaticDirEnvName),
+				config.PlaylistsCoversDir,
+				filepath.Base(p.Cover),
+			)
+			if err := os.Remove(oldCoverFile); err != nil {
+				_logger.Error("failed to delete old cover", logger.ErrorAttr(err))
+				return nil, service.ErrInternal
+			}
+		}
+
+		// upload new one
+		uploadDir := path.Join(os.Getenv(config.StaticDirEnvName), config.PlaylistsCoversDir)
+		filePath, err := storage.UploadFile(coverHeader, cover, uploadDir)
+		if err != nil {
+			_logger.Error("failed to upload new cover", logger.ErrorAttr(err))
+			return nil, service.ErrInternal
+		}
+		updates["cover"] = filePath
+	}
+	updates["updatedAt"] = time.Now()
+
+	// apply updates
+	_, err = svc.playlistsCol.UpdateOne(ctx, filter, bson.M{"$set": updates})
+	if err != nil {
+		_logger.Error("failed to update document", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	// return dto
+	res, err := svc.GetMetadata(ctx, userId, playlistId)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (svc *PlaylistService) Delete(
@@ -158,21 +267,100 @@ func (svc *PlaylistService) Delete(
 ) error {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.PlaylistService.Delete"))
-	_ = _logger
-	return nil
 
+	// check cover
+	filter := bson.M{"id": playlistId, "ownerId": userId, "isDefault": false}
+	var p struct {
+		Cover string `bson:"cover"`
+	}
+	err := svc.playlistsCol.FindOne(ctx, filter).Decode(&p)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return service.ErrNotFound
+		}
+		_logger.Error("failed to get playlist", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+
+	// delete cover if exists and not default
+	if p.Cover != "" && !strings.Contains(p.Cover, "default") {
+		oldCoverFile := filepath.Join(
+			os.Getenv(config.StaticDirEnvName),
+			config.PlaylistsCoversDir,
+			filepath.Base(p.Cover),
+		)
+		if err := os.Remove(oldCoverFile); err != nil {
+			_logger.Error("failed to delete old cover", logger.ErrorAttr(err))
+			return service.ErrInternal
+		}
+	}
+
+	// delete document
+	_, err = svc.playlistsCol.DeleteOne(ctx, filter)
+	if err != nil {
+		_logger.Error("failed to delete document", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+
+	return nil
 }
 
 func (svc *PlaylistService) GetTracks(
 	ctx context.Context,
 	userId string,
 	playlistId string,
+	limit int,
 ) ([]dtos.TrackResponse, error) {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.PlaylistService.GetTracks"))
-	_ = _logger
-	return nil, nil
 
+	// get track ids
+	var p struct {
+		TrackIds []string `bson:"trackIds"`
+		IsPublic bool     `bson:"isPublic"`
+		OwnerID  string   `bson:"ownerId"`
+	}
+	err := svc.playlistsCol.FindOne(ctx, bson.M{"id": playlistId}).Decode(&p)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, service.ErrNotFound
+		}
+		_logger.Error("failed to get playlist", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	// check access to album
+	if userId != p.OwnerID && !p.IsPublic {
+		return nil, service.ErrNotFound
+	}
+
+	// prepare aggregation pipeline
+	match := bson.M{"id": bson.M{"$in": p.TrackIds}}
+	pipeline := schemas.GetTracksDetailsPipeline(match, bson.M{})
+	// use limitation
+	pipeline = append(pipeline, bson.M{"$limit": limit})
+
+	// execute aggregation
+	cursor, err := svc.tracksCol.Aggregate(ctx, pipeline)
+	if err != nil {
+		_logger.Error("failed to aggregate tracks with details", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+	defer cursor.Close(ctx)
+
+	if cursor.RemainingBatchLength() < 1 {
+		return []dtos.TrackResponse{}, nil
+	}
+
+	// decode result
+	var tracks []dtos.TrackResponse
+	if err := cursor.All(ctx, &tracks); err != nil {
+		_logger.Error("failed to decode tracks with details", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	// return result
+	return tracks, nil
 }
 
 func (svc *PlaylistService) AddTrack(
@@ -183,9 +371,36 @@ func (svc *PlaylistService) AddTrack(
 ) error {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.PlaylistService.AddTrack"))
-	_ = _logger
-	return nil
 
+	// check track existing
+	count, err := svc.tracksCol.CountDocuments(ctx, bson.M{"id": trackId})
+	if err != nil {
+		_logger.Error("failed to count tracks", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+	if count != 1 {
+		return service.ErrForbidden
+	}
+
+	// prepare updates
+	update := bson.M{
+		"$addToSet": bson.M{"trackIds": trackId},
+		"$set":      bson.M{"updatedAt": time.Now()},
+	}
+	res, err := svc.playlistsCol.UpdateOne(
+		ctx,
+		bson.M{"id": playlistId, "ownerId": userId},
+		update,
+	)
+	if err != nil {
+		_logger.Error("failed to update", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+	if res.MatchedCount == 0 {
+		return service.ErrNotFound
+	}
+
+	return nil
 }
 
 func (svc *PlaylistService) RemoveTrack(
@@ -196,7 +411,26 @@ func (svc *PlaylistService) RemoveTrack(
 ) error {
 	// configure logger
 	_logger := slog.With(slog.String("func", "services.PlaylistService.RemoveTrack"))
-	_ = _logger
-	return nil
 
+	// prepare updates
+	update := bson.M{
+		"$pull": bson.M{"trackIds": trackId},
+		"$set":  bson.M{"updatedAt": time.Now()},
+	}
+
+	// execute update
+	res, err := svc.playlistsCol.UpdateOne(
+		ctx,
+		bson.M{"id": playlistId, "ownerId": userId},
+		update,
+	)
+	if err != nil {
+		_logger.Error("failed to update", logger.ErrorAttr(err))
+		return service.ErrInternal
+	}
+	if res.MatchedCount == 0 {
+		return service.ErrNotFound
+	}
+
+	return nil
 }

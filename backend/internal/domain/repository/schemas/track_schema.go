@@ -33,12 +33,9 @@ func EnsureTrackIndices(ctx context.Context, col *mongo.Collection) error {
 	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{nameAlbumIndex, utils.UniqueIDIndex()})
 	return err
 }
-
-func GetTracksDetailsPipeline(match bson.M) bson.A {
-	return bson.A{
-		bson.M{
-			"$match": match,
-		},
+func GetTracksDetailsPipeline(matchTrack bson.M, matchAlbum bson.M) bson.A {
+	pipeline := bson.A{
+		bson.M{"$match": matchTrack},
 		bson.M{
 			"$lookup": bson.M{
 				"from":         "albums",
@@ -53,6 +50,15 @@ func GetTracksDetailsPipeline(match bson.M) bson.A {
 				"preserveNullAndEmptyArrays": true,
 			},
 		},
+	}
+
+	// add album filter if provided
+	if len(matchAlbum) > 0 {
+		pipeline = append(pipeline, bson.M{"$match": matchAlbum})
+	}
+
+	// continue remaining pipeline
+	pipeline = append(pipeline,
 		bson.M{
 			"$lookup": bson.M{
 				"from":         "artists",
@@ -80,5 +86,7 @@ func GetTracksDetailsPipeline(match bson.M) bson.A {
 				"cover":      "$album.cover",
 			},
 		},
-	}
+	)
+
+	return pipeline
 }

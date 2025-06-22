@@ -105,16 +105,23 @@ func (svc *SearchService) searchTracks(
 ) ([]dtos.TrackResponse, error) {
 
 	matchTrack := bson.M{"name": bson.M{"$regex": query, "$options": "i"}}
-	matchAlbum := bson.M{"$match": bson.M{"album.isPublic": true, "album.isApproved": true}}
+	matchAlbum := bson.M{"album.isPublic": true, "album.isApproved": true}
 	limitNode := bson.M{"$limit": limit}
-	pipeline := schemas.GetTracksDetailsPipeline(matchTrack)
-	pipeline = append(pipeline, matchAlbum, limitNode)
+	pipeline := schemas.GetTracksDetailsPipeline(matchTrack, matchAlbum)
+	pipeline = append(pipeline, limitNode)
+
+	slog.Debug("tracks aggregation pipeline", "pipeline", pipeline)
 
 	cursor, err := svc.tracksCol.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
+
+	if cursor.RemainingBatchLength() < 1 {
+		slog.Debug("small batch")
+		return []dtos.TrackResponse{}, nil
+	}
 
 	var tracks []dtos.TrackResponse
 	if err := cursor.All(ctx, &tracks); err != nil {
@@ -144,12 +151,37 @@ func (svc *SearchService) searchAlbums(
 	}
 	defer cursor.Close(ctx)
 
-	var albums []dtos.AlbumWithStats
-	if err := cursor.All(ctx, &albums); err != nil {
+	if cursor.RemainingBatchLength() < 1 {
+		return []dtos.AlbumWithStats{}, nil
+	}
+
+	// decode result
+	var result []struct {
+		schemas.Album `bson:",inline"`
+		TrackCount    int    `bson:"trackCount" json:"trackCount"`
+		TotalDuration int    `bson:"totalDuration" json:"totalDuration"`
+		ArtistName    string `bson:"artistName" json:"artistName"`
+		ArtistAvatar  string `bson:"artistAvatar" json:"artistAvatar"`
+	}
+
+	if err := cursor.All(ctx, &result); err != nil {
 		return nil, err
 	}
 
-	return albums, nil
+	albumsWithStats := make([]dtos.AlbumWithStats, 0, len(result))
+	for _, a := range result {
+		// create response struct
+		aws := dtos.AlbumWithStats{
+			Album:         a.Album,
+			TrackCount:    a.TrackCount,
+			TotalDuration: a.TotalDuration,
+			ArtistName:    a.ArtistName,
+			ArtistAvatar:  a.ArtistAvatar,
+		}
+		albumsWithStats = append(albumsWithStats, aws)
+	}
+
+	return albumsWithStats, nil
 }
 
 func (svc *SearchService) searchArtists(
@@ -173,6 +205,10 @@ func (svc *SearchService) searchArtists(
 		return nil, err
 	}
 	defer cursor.Close(ctx)
+
+	if cursor.RemainingBatchLength() < 1 {
+		return []schemas.Artist{}, nil
+	}
 
 	var artists []schemas.Artist
 	if err := cursor.All(ctx, &artists); err != nil {

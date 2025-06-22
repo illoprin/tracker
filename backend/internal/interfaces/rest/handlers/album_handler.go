@@ -186,6 +186,14 @@ func (h *AlbumHandler) UpdateByID(w http.ResponseWriter, r *http.Request) {
 		hasCover = false
 	}
 
+	// validate form file
+	if hasCover {
+		if err := storage.ValidateFile(coverHeader, storage.AllowedImageExtensions); err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+	}
+
 	err = h.aSvc.UpdateByID(
 		ctx,
 		userId,

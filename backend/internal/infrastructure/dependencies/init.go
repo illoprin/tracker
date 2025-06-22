@@ -21,9 +21,15 @@ func InitDependencies(
 		repo.ArtistsCol,
 		repo.TracksCol,
 	)
+	playlistSvc := services.NewPlaylistService(
+		repo.PlaylistsCol,
+		repo.TracksCol,
+		repo.UsersCol,
+	)
 	authSvc := services.NewAuthorizationService(
 		repo.UsersCol,
 		redisClient,
+		playlistSvc,
 	)
 	userSvc := services.NewUserService(
 		repo.UsersCol,
@@ -50,11 +56,6 @@ func InitDependencies(
 		repo.TracksCol,
 		repo.AlbumsCol,
 		repo.ArtistsCol,
-	)
-	playlistSvc := services.NewPlaylistService(
-		repo.PlaylistsCol,
-		repo.TracksCol,
-		repo.UsersCol,
 	)
 
 	return &Dependencies{

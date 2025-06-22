@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"tracker-backend/internal/domain/dtos"
 	"tracker-backend/internal/domain/services"
 	"tracker-backend/internal/infrastructure/storage"
@@ -56,6 +57,15 @@ func (h *PlaylistHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		hasCover = false
 	}
+
+	if hasCover {
+		// validate form file
+		if err := storage.ValidateFile(fileHeader, storage.AllowedImageExtensions); err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+		}
+	}
+
 	// validate file if it has
 	if hasCover {
 		if err := storage.ValidateFile(fileHeader, storage.AllowedImageExtensions); err != nil {
@@ -83,6 +93,10 @@ func (h *PlaylistHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// return response
 	render.JSON(w, r, a)
+}
+
+func (h *PlaylistHandler) My(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusNotImplemented)
 }
 
 func (h *PlaylistHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -119,9 +133,29 @@ func (h *PlaylistHandler) GetTracks(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userId := ctx.Value(middleware.UserIDKey).(string)
 	id := chi.URLParam(r, "id")
-	_ = userId
-	_ = id
+	limitStr := chi.URLParam(r, "limit")
 
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 10
+	}
+
+	// execute service function
+	tracks, err := h.pSvc.GetTracks(ctx, userId, id, limit)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else if errors.Is(err, service.ErrForbidden) {
+			render.Status(r, http.StatusForbidden)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return content
+	render.JSON(w, r, tracks)
 }
 
 func (h *PlaylistHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -130,9 +164,66 @@ func (h *PlaylistHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userId := ctx.Value(middleware.UserIDKey).(string)
 	id := chi.URLParam(r, "id")
 
-	_ = userId
-	_ = id
+	// parse form
+	err := r.ParseMultipartForm(storage.MaxFormSize)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.JSON(w, r, response.Error("failed to parse multipart form"))
+		return
+	}
 
+	// parse form data
+	req := dtos.PlaylistUpdateRequest{
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
+		IsPublic:    r.FormValue("isPublic"),
+	}
+
+	// parse form file
+	hasCover := true
+	file, fileHeader, err := r.FormFile("cover")
+	if err != nil {
+		hasCover = false
+	}
+
+	if hasCover {
+		// validate form file
+		if err := storage.ValidateFile(fileHeader, storage.AllowedImageExtensions); err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+			return
+		}
+	}
+
+	// validate file if it needed
+	if hasCover {
+		if err := storage.ValidateFile(fileHeader, storage.AllowedImageExtensions); err != nil {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error(err.Error()))
+			return
+		}
+	}
+
+	// validate body
+	if !request.ValidateBody(w, r, h.v, req) {
+		return
+	}
+
+	a, err := h.pSvc.Update(ctx, userId, id, req, &file, fileHeader, hasCover)
+	if err != nil {
+		if errors.Is(err, service.ErrInternal) {
+			render.Status(r, http.StatusInternalServerError)
+		} else if errors.Is(err, service.ErrExists) {
+			render.Status(r, http.StatusConflict)
+		} else if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return response
+	render.JSON(w, r, a)
 }
 
 func (h *PlaylistHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -141,9 +232,20 @@ func (h *PlaylistHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userId := ctx.Value(middleware.UserIDKey).(string)
 	id := chi.URLParam(r, "id")
 
-	_ = userId
-	_ = id
+	// execute service function
+	err := h.pSvc.Delete(ctx, userId, id)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
 
+	// return status
+	render.Status(r, http.StatusNoContent)
 }
 
 func (h *PlaylistHandler) AddTrack(w http.ResponseWriter, r *http.Request) {
@@ -153,10 +255,22 @@ func (h *PlaylistHandler) AddTrack(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	trackId := chi.URLParam(r, "trackId")
 
-	_ = userId
-	_ = id
-	_ = trackId
+	err := h.pSvc.AddTrack(ctx, userId, id, trackId)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else if errors.Is(err, service.ErrForbidden) {
+			render.Status(r, http.StatusMethodNotAllowed)
+			render.JSON(w, r, response.Error("you can't insert this track into the playlist"))
+			return
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
 
+	render.Status(r, http.StatusNoContent)
 }
 
 func (h *PlaylistHandler) DeleteTrack(w http.ResponseWriter, r *http.Request) {
@@ -166,8 +280,16 @@ func (h *PlaylistHandler) DeleteTrack(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	trackId := chi.URLParam(r, "trackId")
 
-	_ = userId
-	_ = id
-	_ = trackId
+	err := h.pSvc.RemoveTrack(ctx, userId, id, trackId)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
 
+	render.Status(r, http.StatusNoContent)
 }

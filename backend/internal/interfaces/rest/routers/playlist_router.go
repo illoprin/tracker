@@ -18,6 +18,7 @@ func RegisterPlaylistRoutes(
 
 	r.Use(auth)
 	r.Post("/", h.Create)
+	r.Get("/my", h.My)
 	r.Get("/{id}", h.Get)
 	r.Patch("/{id}", h.Update)
 	r.Delete("/{id}", h.Delete)
