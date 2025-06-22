@@ -13,8 +13,9 @@ var (
 )
 
 var (
-	AudioDir   = "audio"
-	CoversDir  = "covers"
-	AvatarsDir = "avatars"
-	BannersDir = "banners"
+	AudioDir           = "audio"
+	CoversDir          = "covers"
+	AvatarsDir         = "avatars"
+	BannersDir         = "banners"
+	PlaylistsCoversDir = "playlist_covers"
 )

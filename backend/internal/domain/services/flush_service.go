@@ -118,6 +118,7 @@ func (svc *FlushService) FlushAlbumData(ctx context.Context, id string) error {
 
 	// delete cover
 	fileName := filepath.Base(album.CoverPath)
+	_logger.Debug("album cover delete", slog.String("fileName", fileName))
 	filePath := filepath.Join(os.Getenv(config.StaticDirEnvName), config.CoversDir, fileName)
 	if !strings.Contains(fileName, "default") {
 		if err := os.Remove(filePath); err != nil {

@@ -18,7 +18,6 @@ func RegisterAlbumRoutes(
 	r := chi.NewRouter()
 
 	r.Use(mw)
-	r.Post("/", h.Create)
 
 	r.Group(func(rm chi.Router) {
 		rm.Use(middleware.Role(schemas.RoleModerator))

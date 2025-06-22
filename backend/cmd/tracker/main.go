@@ -27,7 +27,6 @@ func main() {
 	}
 
 	// init logger
-
 	if err, _ := logger.InitLogger(); err != nil {
 		panic("could not init logger")
 	}
@@ -57,7 +56,6 @@ func main() {
 	if err != nil {
 		slog.Error("could not create repository", slog.String("error", err.Error()))
 	}
-	_ = repo
 	// init dependencies
 	deps := dependencies.InitDependencies(repo, redisClient)
 	// TODO: init cron jobs

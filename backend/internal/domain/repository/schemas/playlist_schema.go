@@ -11,14 +11,54 @@ import (
 )
 
 type Playlist struct {
-	ID        string    `bson:"id" json:"id"`
-	UserID    string    `bson:"userId" json:"userId"`
-	Name      string    `bson:"name" json:"name"`
-	CoverPath string    `bson:"coverPath" json:"coverPath"`
-	IsPublic  bool      `bson:"isPublic" json:"isPublic"`
-	IsDefault bool      `bson:"isDefault" json:"isDefault"`
-	Tracks    []string  `bson:"trackIds" json:"trackIds"`
-	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	ID          string    `bson:"id" json:"id"`
+	OwnerID     string    `bson:"ownerId" json:"ownerId"`
+	Name        string    `bson:"name" json:"name"`
+	Description string    `bson:"description" json:"description"`
+	Cover       string    `bson:"cover" json:"cover"` // cover path
+	IsDefault   bool      `bson:"isDefault" json:"isDefault"`
+	IsPublic    bool      `bson:"isPublic" json:"isPublic"`
+	TrackIDs    []string  `bson:"trackIds" json:"trackIds"` // tracks links
+	CreatedAt   time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt   time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+func GetPlaylistsAggregationPipeline(match bson.M) bson.A {
+	pipeline := bson.A{
+		bson.M{
+			"$match": match,
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"localField":   "ownerId",
+				"foreignField": "id",
+				"from":         "users",
+				"as":           "owner",
+			},
+		},
+		bson.M{
+			"$unwind": bson.M{
+				"path":                       "$owner",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"ownerInfo": bson.M{
+					"id":   "$owner.id",
+					"name": "$owner.login",
+				},
+				"id":          1,
+				"name":        1,
+				"description": 1,
+				"cover":       1,
+				"isPublic":    1,
+				"createdAt":   1,
+				"updatedAt":   1,
+			},
+		},
+	}
+	return pipeline
 }
 
 func EnsurePlaylistIndices(ctx context.Context, col *mongo.Collection) error {
@@ -26,11 +66,26 @@ func EnsurePlaylistIndices(ctx context.Context, col *mongo.Collection) error {
 	nameUserIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "name", Value: 1},
-			{Key: "userId", Value: 1},
+			{Key: "ownerId", Value: 1},
 		},
 		Options: options.Index().SetUnique(true).SetName("name_user_index"),
 	}
 
-	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{nameUserIndex, utils.UniqueIDIndex()})
+	isPublicTracksIndex := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "trackIds", Value: 1},
+			{Key: "isPublic", Value: 1},
+		},
+		Options: options.Index().SetName("tracks_isPublic_index"),
+	}
+
+	_, err := col.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			nameUserIndex,
+			isPublicTracksIndex,
+			utils.UniqueIDIndex(),
+		},
+	)
 	return err
 }

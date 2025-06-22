@@ -12,8 +12,8 @@
 
 ### Search
 
-| Endpoint            | Description                    | Status          |
-| ------------------- | ------------------------------ | --------------- |
+| Endpoint                                             | Description                    | Status          |
+| ---------------------------------------------------- | ------------------------------ | --------------- |
 | GET `/search?query=string&limitTracks=int&limit=int` | Search tracks, albums, artists | Not Implemented |
 
 ### Genre
@@ -41,29 +41,29 @@
 
 ### Artist
 
-> ❗ GET `/artist/{id}/albums` if not owning -> returns only public albums
+> ❗ GET `/artist/{id}/albums` if not owning -> returns only public and approved albums
 
-| Endpoint                           | Description                    | Requirements                       |
-| ---------------------------------- | ------------------------------ | ---------------------------------- |
-| POST `/artists`                    | Create new artist              | Authorization, ArtistCreateRequest |
-| GET `/artists/my`                  | Get my artists                 | Authorization                      |
-| GET `/artists/{id}`                | Get artist info                | Authorization                      |
-| GET `/artists/{id}/stats`          | Get listening statistics       | Authorization                      |
-| GET `/artists/{id}/albums`         | Get artist's albums            | Authorization                      |
-| GET `/artists/{id}/popular?limit=` | Get popular tracks             | Authorization                      |
-| DELETE `/artists/{id}`             | Delete artist and related data | Authorization, Ownership           |
+| Endpoint                           | Description                    | Requirements                                 |
+| ---------------------------------- | ------------------------------ | -------------------------------------------- |
+| POST `/artists`                    | Create new artist              | Authorization, ArtistCreateRequest           |
+| GET `/artists/my`                  | Get my artists                 | Authorization                                |
+| GET `/artists/{id}`                | Get artist info                | Authorization                                |
+| GET `/artists/{id}/stats`          | Get listening statistics       | Authorization                                |
+| GET `/artists/{id}/albums`         | Get artist's albums            | Authorization                                |
+| POST `/artists/{id}/album`         | Create new album for artist    | Authorization, Ownership, AlbumCreateRequest |
+| GET `/artists/{id}/popular?limit=` | Get popular tracks             | Authorization                                |
+| DELETE `/artists/{id}`             | Delete artist and related data | Authorization, Ownership                     |
 
 ### Genres
 
-| Endpoint      | Description        | Requirements |
-| ------------- | ------------------ | ------------ |
-| GET `/genres` | Get allowed genres |              |
+| Endpoint      | Description        |
+| ------------- | ------------------ |
+| GET `/genres` | Get allowed genres |
 
 ### Album/Track
 
 | Endpoint                    | Description               | Requirements                                 |
 | --------------------------- | ------------------------- | -------------------------------------------- |
-| POST `/albums`              | Create new album          | Authorization, AlbumCreateRequest            |
 | GET `/albums/{id}`          | Get album data            | Authorization                                |
 | GET `/albums/{id}/listens`  | Get album listening stats | Authorization                                |
 | PATCH `/albums/{id}`        | Update album              | Authorization, Ownership, AlbumUpdateRequest |
@@ -88,6 +88,11 @@
 ### Listening
 
 ### Moderation
+
+| Endpoint                     | Description           | Requirements                                     |
+| ---------------------------- | --------------------- | ------------------------------------------------ |
+| GET `/albums/moderation`     | Get unapproved albums | Authorization, Moderator Role                    |
+| POST `/albums/{id}/moderate` | Moderate album        | Authorization, Moderator Role, ModerationRequest |
 
 ### Playlist
 
@@ -198,14 +203,14 @@ avatar: image
     "status": "pending|approved|rejected",
     "comment": "string"
   },
-  "createdAt": "ISODate"
+  "createdAt": "ISODate",
+  "updatedAt": "ISODate"
 }
 ```
 
 #### Create Request
 
 ```http
-artistId: id
 name: string
 year: int
 type: single|album
@@ -221,4 +226,13 @@ name: string
 year: int
 type: single|album
 isPublic: bool
+```
+
+#### Moderation Request
+
+```json
+{
+  "status": "approved|rejected",
+  "comment": "string"
+}
 ```

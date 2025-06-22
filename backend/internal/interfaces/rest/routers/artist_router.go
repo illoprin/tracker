@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func RegisterArtistRoutes(s *services.ArtistService, mw middleware.MiddlewareFunc) chi.Router {
-	h := handlers.NewArtistHandler(s)
+func RegisterArtistRoutes(artistSvc *services.ArtistService, albumSvc *services.AlbumService, mw middleware.MiddlewareFunc) chi.Router {
+	h := handlers.NewArtistHandler(artistSvc, albumSvc)
 	r := chi.NewRouter()
 
 	r.Use(mw)
@@ -19,6 +19,7 @@ func RegisterArtistRoutes(s *services.ArtistService, mw middleware.MiddlewareFun
 	r.Get("/{id}", h.GetByID)
 	r.Get("/{id}/stats", h.GetStats)
 	r.Get("/{id}/albums", h.GetAlbums)
+	r.Post("/{id}/album", h.PushAlbum)
 	r.Get("/{id}/popular", h.GetPopularTracks)
 
 	r.Delete("/{id}", h.DeleteByID)

@@ -37,61 +37,6 @@ func NewAlbumHandler(s *services.AlbumService, t *services.TrackService) *AlbumH
 	}
 }
 
-func (h *AlbumHandler) Create(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userId := ctx.Value(middleware.UserIDKey).(string)
-
-	// parse form
-	err := r.ParseMultipartForm(storage.MaxFormSize)
-	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, response.Error("failed to parse multipart form"))
-		return
-	}
-
-	// parse form data
-	req := dtos.AlbumCreateRequest{
-		ArtistID: r.FormValue("artistId"),
-		Name:     r.FormValue("name"),
-		Year:     r.FormValue("year"),
-		Type:     r.FormValue("type"),
-	}
-
-	// parse form file
-	hasCover := true
-	file, fileHeader, err := r.FormFile("cover")
-	if err != nil {
-		hasCover = false
-	}
-	// validate file if it has
-	if hasCover {
-		if err := storage.ValidateFile(fileHeader, storage.AllowedImageExtensions); err != nil {
-			render.Status(r, http.StatusBadRequest)
-			render.JSON(w, r, response.Error(err.Error()))
-			return
-		}
-	}
-
-	// validate body
-	if !request.ValidateBody(w, r, h.v, req) {
-		return
-	}
-
-	a, err := h.aSvc.Create(ctx, userId, req, file, fileHeader, hasCover)
-	if err != nil {
-		if errors.Is(err, service.ErrInternal) {
-			render.Status(r, http.StatusInternalServerError)
-		} else if errors.Is(err, service.ErrExists) {
-			render.Status(r, http.StatusConflict)
-		}
-		render.JSON(w, r, response.Error(err.Error()))
-		return
-	}
-
-	// return response
-	render.JSON(w, r, a)
-}
-
 func (h *AlbumHandler) CreateTrack(w http.ResponseWriter, r *http.Request) {
 	// get context keys
 	ctx := r.Context()
