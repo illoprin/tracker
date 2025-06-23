@@ -6,8 +6,5 @@
   "vueIndentScriptAndStyle": true,
   "bracketSameLine": false,
   "printWidth": 70,
-  "proseWrap": "always",
-
-  "plugins": ["prettier-plugin-multiline-arrays"],
-  "multilineArraysWrapThreshold": 1
+  "proseWrap": "always"
 }

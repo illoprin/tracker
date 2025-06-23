@@ -1,0 +1,116 @@
+:root {
+  --dark-gray: #151515;
+  --light-gray: #454553;
+}
+
+input {
+  outline: none !important;
+  border: none;
+}
+
+*::selection {
+  color: #0B1014;
+  background: #E7AF21;
+}
+
+@media screen and (max-width: 900px) {
+  .panel-aside {
+    display: none;
+  }
+}
+
+/* Button */
+.btn-primary {
+  background: linear-gradient(160deg,rgba(231, 175, 33, 1) 0%, rgba(189, 141, 21, 1) 100%);
+  color: #0B1014;
+  font-weight: 600;
+  box-shadow: 3px 10px 30px rgba(0, 0, 0, 0.23);
+  width: 100%;
+  will-change: background;
+  transition: box-shadow 400ms, transform 400ms;
+}
+
+.btn-primary:hover {
+  box-shadow: 3px 10px 50px rgba(0, 0, 0, 0.23);
+  transform: scale(1.02);
+  background: linear-gradient(10deg,rgba(231, 175, 33, 1) 0%, rgba(189, 141, 21, 1) 100%);
+}
+
+.btn-primary:active {
+  transform: scale(1.06);
+  background: #fff;
+}
+
+/* Panel */
+@keyframes panel-in {
+  from {
+    transform: scale(0.6);
+    filter: blur(20px);
+  }
+  to {
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+.panel {
+  animation: panel-in 400ms;
+}
+.panel-aside {
+  background: linear-gradient(125deg, var(--dark-gray), var(--light-gray));
+}
+
+/* Link */
+a:active {
+  color: #fff;
+}
+
+/* Landing Background */
+body.landing {
+  background-color: var(--dark-gray) !important;
+  position: relative;
+}
+
+.landing-backdrop {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  animation: body-bg-anim 60s reverse infinite linear;
+  z-index: -1;
+}
+
+@keyframes body-bg-anim {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body.landing * {
+  z-index: 2;
+}
+
+.landing-backdrop::before {
+  position: absolute;
+  content: "";
+  top: -10rem;
+  left: -10rem;
+  width: 30rem;
+  height: 30rem;
+  background-color: var(--light-gray);
+  filter: blur(200px);
+  z-index: -1;
+}
+
+.landing-backdrop::after {
+  position: absolute;
+  content: "";
+  top: 90%;
+  left: 90%;
+  width: 30rem;
+  height: 30rem;
+  background-color: var(--light-gray);
+  filter: blur(200px);
+  z-index: -1;
+}
