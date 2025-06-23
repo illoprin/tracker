@@ -5,6 +5,7 @@ backend/tmp
 backend/public/*
 
 frontend/node_modules
+frontend/dist
 
 /html.layout
 
