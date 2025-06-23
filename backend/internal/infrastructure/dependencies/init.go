@@ -59,14 +59,17 @@ func InitDependencies(
 		repo.AlbumsCol,
 		repo.ArtistsCol,
 	)
+	genreSvc := services.NewGenreService(repo.TracksCol, redisClient)
+	recommendationSvc := services.NewRecommendationsService(genreSvc, repo.TracksCol)
 
 	return &Dependencies{
-		AuthSvc:     authSvc,
-		UserSvc:     userSvc,
-		ArtistSvc:   artistSvc,
-		AlbumSvc:    albumSvc,
-		TrackSvc:    trackSvc,
-		SearchSvc:   searchSvc,
-		PlaylistSvc: playlistSvc,
+		AuthSvc:           authSvc,
+		UserSvc:           userSvc,
+		ArtistSvc:         artistSvc,
+		AlbumSvc:          albumSvc,
+		TrackSvc:          trackSvc,
+		SearchSvc:         searchSvc,
+		PlaylistSvc:       playlistSvc,
+		RecommendationSvc: recommendationSvc,
 	}
 }

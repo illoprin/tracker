@@ -12,9 +12,10 @@ import (
 func RegisterAlbumRoutes(
 	s *services.AlbumService,
 	t *services.TrackService,
+	rcm *services.RecommendationsService,
 	mw middleware.MiddlewareFunc,
 ) chi.Router {
-	h := handlers.NewAlbumHandler(s, t)
+	h := handlers.NewAlbumHandler(s, t, rcm)
 	r := chi.NewRouter()
 
 	r.Use(mw)
@@ -29,6 +30,7 @@ func RegisterAlbumRoutes(
 	r.Get("/{id}", h.GetByID)
 	r.Patch("/{id}", h.UpdateByID)
 	r.Delete("/{id}", h.DeleteByID)
+	r.Get("/{id}/wave", h.GetWave)
 	r.Post("/{id}/like", h.Like)
 	r.Post("/{id}/publish", h.Publish)
 	r.Post("/{id}/tracks", h.CreateTrack)

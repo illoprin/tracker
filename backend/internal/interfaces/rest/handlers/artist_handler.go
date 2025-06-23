@@ -20,12 +20,14 @@ import (
 type ArtistHandler struct {
 	aSvc  *services.ArtistService
 	alSvc *services.AlbumService
+	rSvc  *services.RecommendationsService
 	v     *validator.Validate
 }
 
 func NewArtistHandler(
 	artistSvc *services.ArtistService,
 	albumSvc *services.AlbumService,
+	rcmSvc *services.RecommendationsService,
 ) *ArtistHandler {
 	v := validator.New()
 	v.RegisterValidation("year", dtos.ValidateYear)
@@ -35,6 +37,7 @@ func NewArtistHandler(
 	return &ArtistHandler{
 		alSvc: albumSvc,
 		aSvc:  artistSvc,
+		rSvc:  rcmSvc,
 		v:     v,
 	}
 }
@@ -234,6 +237,34 @@ func (h *ArtistHandler) GetAlbums(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, a)
+}
+
+func (h *ArtistHandler) GetWave(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	artistId := chi.URLParam(r, "id")
+
+	// get limit query param
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		limit = 10
+	}
+
+	// get page query param
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 1
+	}
+
+	// FIX
+	tracks, err := h.rSvc.GetForResource(ctx, "artist", artistId, limit, page, []string{})
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	render.JSON(w, r, tracks)
 }
 
 func (h *ArtistHandler) GetPopularTracks(w http.ResponseWriter, r *http.Request) {

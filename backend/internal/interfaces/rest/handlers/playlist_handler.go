@@ -19,13 +19,18 @@ import (
 
 type PlaylistHandler struct {
 	pSvc *services.PlaylistService
+	rSvc *services.RecommendationsService
 	v    *validator.Validate
 }
 
-func NewPlaylistHandler(svc *services.PlaylistService) *PlaylistHandler {
+func NewPlaylistHandler(
+	svc *services.PlaylistService,
+	rcmSvc *services.RecommendationsService,
+) *PlaylistHandler {
 	v := validator.New()
 	return &PlaylistHandler{
 		pSvc: svc,
+		rSvc: rcmSvc,
 		v:    v,
 	}
 }
@@ -96,7 +101,20 @@ func (h *PlaylistHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PlaylistHandler) My(w http.ResponseWriter, r *http.Request) {
-	render.Status(r, http.StatusNotImplemented)
+	// get context keys
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey).(string)
+
+	// execute service function
+	p, err := h.pSvc.GetMy(ctx, userId)
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	// return response
+	render.JSON(w, r, p)
 }
 
 func (h *PlaylistHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +130,7 @@ func (h *PlaylistHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// execute service function
-	a, err := h.pSvc.GetMetadata(ctx, userId, id)
+	p, err := h.pSvc.GetMetadata(ctx, userId, id)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			render.Status(r, http.StatusNotFound)
@@ -124,8 +142,7 @@ func (h *PlaylistHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// return response
-	render.JSON(w, r, a)
-
+	render.JSON(w, r, p)
 }
 
 func (h *PlaylistHandler) GetTracks(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +172,33 @@ func (h *PlaylistHandler) GetTracks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// return content
+	render.JSON(w, r, tracks)
+}
+
+func (h *PlaylistHandler) GetWave(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	playlistId := chi.URLParam(r, "id")
+
+	// get limit query param
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		limit = 10
+	}
+
+	// get page query param
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 1
+	}
+
+	tracks, err := h.rSvc.GetForResource(ctx, "playlist", playlistId, limit, page, []string{})
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
 	render.JSON(w, r, tracks)
 }
 

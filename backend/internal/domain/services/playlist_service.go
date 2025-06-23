@@ -141,6 +141,41 @@ func (svc *PlaylistService) Create(
 	return res, nil
 }
 
+func (svc *PlaylistService) GetMy(
+	ctx context.Context,
+	userId string,
+) ([]dtos.PlaylistResponse, error) {
+
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.PlaylistService.GetMy"))
+
+	// prepare pipeline
+	match := bson.M{"ownerId": userId}
+	pipeline := schemas.GetPlaylistsAggregationPipeline(match)
+
+	// aggregate
+	cur, err := svc.playlistsCol.Aggregate(ctx, pipeline)
+	if err != nil {
+		_logger.Error("failed to aggregate", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+	defer cur.Close(ctx)
+
+	if cur.RemainingBatchLength() < 1 {
+		return []dtos.PlaylistResponse{}, nil
+	}
+
+	var p []dtos.PlaylistResponse
+	if err := cur.All(ctx, &p); err != nil {
+		_logger.Error("failed to decode", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+
+	_logger.Debug("playlists", slog.Any("playlists", p))
+
+	return p, nil
+}
+
 func (svc *PlaylistService) GetMetadata(
 	ctx context.Context,
 	userId string,
@@ -170,8 +205,10 @@ func (svc *PlaylistService) GetMetadata(
 		return nil, service.ErrNotFound
 	}
 
+	_logger.Debug("get playlist")
+
 	// check ownership and isPublic flag
-	if !p.IsPublic && userId != p.OwnerInfo.ID {
+	if (!p.IsPublic && userId != p.OwnerInfo.ID) || p.ID == "" {
 		return nil, service.ErrNotFound
 	}
 

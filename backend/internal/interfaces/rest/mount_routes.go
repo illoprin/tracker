@@ -32,6 +32,7 @@ func MountAppRoutes(r chi.Router, deps *dependencies.Dependencies) chi.Router {
 		ar.Mount("/artists", routers.RegisterArtistRoutes(
 			deps.ArtistSvc,
 			deps.AlbumSvc,
+			deps.RecommendationSvc,
 			authMiddleware,
 		))
 
@@ -39,17 +40,20 @@ func MountAppRoutes(r chi.Router, deps *dependencies.Dependencies) chi.Router {
 		ar.Mount("/albums", routers.RegisterAlbumRoutes(
 			deps.AlbumSvc,
 			deps.TrackSvc,
+			deps.RecommendationSvc,
 			authMiddleware,
 		))
 
 		// PERF
 		ar.Mount("/tracks", routers.RegisterTrackRoutes(
 			deps.TrackSvc,
+			deps.RecommendationSvc,
 			authMiddleware,
 		))
 
 		ar.Mount("/playlists", routers.RegisterPlaylistRoutes(
 			deps.PlaylistSvc,
+			deps.RecommendationSvc,
 			authMiddleware,
 		))
 	})

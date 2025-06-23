@@ -10,9 +10,10 @@ import (
 
 func RegisterPlaylistRoutes(
 	s *services.PlaylistService,
+	rcm *services.RecommendationsService,
 	auth middleware.MiddlewareFunc,
 ) chi.Router {
-	h := handlers.NewPlaylistHandler(s)
+	h := handlers.NewPlaylistHandler(s, rcm)
 
 	r := chi.NewRouter()
 
@@ -20,6 +21,7 @@ func RegisterPlaylistRoutes(
 	r.Post("/", h.Create)
 	r.Get("/my", h.My)
 	r.Get("/{id}", h.Get)
+	r.Get("/{id}/wave", h.GetWave)
 	r.Patch("/{id}", h.Update)
 	r.Delete("/{id}", h.Delete)
 	r.Get("/{id}/tracks", h.GetTracks)

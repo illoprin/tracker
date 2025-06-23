@@ -21,10 +21,15 @@ import (
 type AlbumHandler struct {
 	aSvc *services.AlbumService
 	tSvc *services.TrackService
+	rSvc *services.RecommendationsService
 	v    *validator.Validate
 }
 
-func NewAlbumHandler(s *services.AlbumService, t *services.TrackService) *AlbumHandler {
+func NewAlbumHandler(
+	s *services.AlbumService,
+	t *services.TrackService,
+	r *services.RecommendationsService,
+) *AlbumHandler {
 	v := validator.New()
 	v.RegisterValidation("year", dtos.ValidateYear)
 	v.RegisterValidation("type", dtos.ValidateType)
@@ -33,6 +38,7 @@ func NewAlbumHandler(s *services.AlbumService, t *services.TrackService) *AlbumH
 	return &AlbumHandler{
 		aSvc: s,
 		tSvc: t,
+		rSvc: r,
 		v:    v,
 	}
 }
@@ -285,6 +291,33 @@ func (h *AlbumHandler) Publish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.Status(r, http.StatusNoContent)
+}
+
+func (h *AlbumHandler) GetWave(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	albumId := chi.URLParam(r, "id")
+
+	// get limit query param
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		limit = 10
+	}
+
+	// get page query param
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 1
+	}
+
+	tracks, err := h.rSvc.GetForResource(ctx, "album", albumId, limit, page, []string{})
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	render.JSON(w, r, tracks)
 }
 
 func (h *AlbumHandler) GetUnapproved(w http.ResponseWriter, r *http.Request) {

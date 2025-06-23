@@ -21,11 +21,16 @@ import (
 
 type TrackHandler struct {
 	tSvc *services.TrackService
+	rSvc *services.RecommendationsService
 }
 
-func NewTrackHandler(t *services.TrackService) *TrackHandler {
+func NewTrackHandler(
+	t *services.TrackService,
+	r *services.RecommendationsService,
+) *TrackHandler {
 	return &TrackHandler{
 		tSvc: t,
+		rSvc: r,
 	}
 }
 
@@ -106,4 +111,35 @@ func (h *TrackHandler) GetMetadata(w http.ResponseWriter, r *http.Request) {
 
 	// return content
 	render.JSON(w, r, a)
+}
+
+func (h *TrackHandler) GetWave(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	trackId := chi.URLParam(r, "id")
+
+	// get limit query param
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		limit = 10
+	}
+
+	// get page query param
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 1
+	}
+
+	tracks, err := h.rSvc.GetForTrack(ctx, trackId, limit, page)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+
+	render.JSON(w, r, tracks)
 }
