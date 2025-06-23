@@ -27,6 +27,7 @@ func RegisterArtistRoutes(
 	r.Post("/{id}/like", h.Like)
 	r.Get("/{id}/stats", h.GetStats)
 	r.Get("/{id}/albums", h.GetAlbums)
+	r.Get("/{id}/albums/last", h.GetLastRelease)
 	r.Post("/{id}/album", h.PushAlbum)
 	r.Get("/{id}/popular", h.GetPopularTracks)
 

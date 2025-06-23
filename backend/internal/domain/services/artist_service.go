@@ -151,6 +151,73 @@ func (svc *ArtistService) GetByID(
 	return &a, nil
 }
 
+func (svc *ArtistService) GetLastRelease(
+	ctx context.Context,
+	userId, id string,
+) (*dtos.AlbumWithStats, error) {
+	// configure logger
+	_logger := slog.With(slog.String("func", "services.ArtistService.GetAlbums"))
+
+	// check ownership
+	isOwn, err := svc.oc.IsArtistOwner(ctx, userId, id)
+	if err != nil {
+		return nil, service.ErrInternal
+	}
+
+	// if user is owner -> return all albums
+	// else return public albums only
+	var match bson.M = make(bson.M, 3)
+	if !isOwn {
+		match["artistId"] = id
+		match["isApproved"] = true
+		match["isPublic"] = true
+	} else {
+		match["artistId"] = id
+	}
+
+	// prepare aggregation pipeline
+	pipeline := schemas.GetAlbumsAggregationPipeline(match)
+
+	// sort albums by creating year
+	pipeline = append(pipeline, bson.M{"$sort": bson.M{"year": -1}})
+
+	// execute aggregation
+	cursor, err := svc.albumsCol.Aggregate(ctx, pipeline)
+	if err != nil {
+		_logger.Error("failed to aggregate album stats", logger.ErrorAttr(err))
+		return nil, service.ErrInternal
+	}
+	defer cursor.Close(ctx)
+
+	// decode cursor
+	var res struct {
+		schemas.Album `bson:",inline"`
+		TrackCount    int    `bson:"trackCount" json:"trackCount"`
+		TotalDuration int    `bson:"totalDuration" json:"totalDuration"`
+		ArtistName    string `bson:"artistName" json:"artistName"`
+		ArtistAvatar  string `bson:"artistAvatar" json:"artistAvatar"`
+	}
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&res); err != nil {
+			_logger.Error("failed decode", logger.ErrorAttr(err))
+			return nil, service.ErrInternal
+		}
+	} else {
+		return nil, service.ErrNotFound
+	}
+
+	// decode result
+	a := dtos.AlbumWithStats{
+		Album:         res.Album,
+		TrackCount:    res.TrackCount,
+		TotalDuration: res.TotalDuration,
+		ArtistName:    res.ArtistName,
+		ArtistAvatar:  res.ArtistAvatar,
+	}
+
+	return &a, nil
+}
+
 func (svc *ArtistService) GetAlbums(
 	ctx context.Context,
 	userId, id string,
@@ -190,7 +257,7 @@ func (svc *ArtistService) GetAlbums(
 	defer cursor.Close(ctx)
 
 	// get next cursor
-	if !cursor.Next(ctx) {
+	if cursor.RemainingBatchLength() < 1 {
 		return []dtos.AlbumWithStats{}, nil
 	}
 

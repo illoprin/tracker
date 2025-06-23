@@ -267,6 +267,27 @@ func (h *ArtistHandler) GetWave(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, tracks)
 }
 
+func (h *ArtistHandler) GetLastRelease(w http.ResponseWriter, r *http.Request) {
+	// get context keys
+	ctx := r.Context()
+	userId := ctx.Value(middleware.UserIDKey).(string)
+	id := chi.URLParam(r, "id")
+
+	// execute service function
+	a, err := h.aSvc.GetLastRelease(ctx, userId, id)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			render.Status(r, http.StatusNotFound)
+		} else {
+			render.Status(r, http.StatusInternalServerError)
+		}
+		render.JSON(w, r, response.Error(err.Error()))
+		return
+	}
+	// return result
+	render.JSON(w, r, a)
+}
+
 func (h *ArtistHandler) GetPopularTracks(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := 0

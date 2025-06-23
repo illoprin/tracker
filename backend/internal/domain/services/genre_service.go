@@ -95,12 +95,12 @@ func (svc *GenreService) GetPopularGenres(
 		result[i] = g.Genre
 	}
 
-	_logger.Debug("Successfully got popular genres",
-		slog.Int("count", len(result)),
+	_logger.Debug("successfully got popular genres",
+		slog.Any("genres", genres),
 	)
 
 	// set genres to redis
-	err = svc.redisClient.SetJSON(ctx, cacheKey, result, time.Hour*5)
+	err = svc.redisClient.SetJSON(ctx, cacheKey, result, time.Minute*20)
 	if err != nil {
 		_logger.Warn("failed to push redis", logger.ErrorAttr(err))
 	}
@@ -191,7 +191,9 @@ func (svc *GenreService) getPlaylistGenresPipeline(playlistID string) []bson.M {
 		},
 		{
 			"$match": bson.M{
-				"id": bson.M{"$in": "$playlist.trackIds"},
+				"$expr": bson.M{
+					"$in": []string{"$id", "$playlist.trackIds"},
+				},
 			},
 		},
 		{

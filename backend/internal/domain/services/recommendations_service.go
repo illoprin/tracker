@@ -47,6 +47,8 @@ func (svc *RecommendationsService) GetForResource(
 		slog.Int("page", page),
 	)
 
+	// TODO: exclude tracks from resource
+
 	// get genre model
 	genreModel, err := svc.genreSvc.GetPopularGenres(ctx, resourceType, resourceID)
 	if err != nil {
