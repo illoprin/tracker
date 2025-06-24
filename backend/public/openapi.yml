@@ -1,0 +1,1105 @@
+openapi: 3.0.1
+info:
+  title: Tracker API
+  version: 1.0.0
+  description: API for music search and management system
+servers:
+  - url: /api/v1
+    description: Main API server
+tags:
+  - name: System
+    description: System health checks
+  - name: Search
+    description: Search functionality
+  - name: Genre
+    description: Genre operations
+  - name: Auth
+    description: Authentication and authorization
+  - name: User
+    description: User management
+  - name: Artist
+    description: Artist operations
+  - name: Album/Track
+    description: Album and track operations
+  - name: Moderation
+    description: Moderation operations
+  - name: Playlist
+    description: Playlist operations
+paths:
+  /ping:
+    get:
+      tags: [System]
+      summary: Ping server
+      responses:
+        '200':
+          description: Server is running
+
+  /search:
+    get:
+      tags: [Search]
+      summary: Search tracks, albums, artists
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: limitTracks
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Search results
+
+  /genres:
+    get:
+      tags: [Genre]
+      summary: Get all allowed genres
+      responses:
+        '200':
+          description: List of genres
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /auth/verify:
+    post:
+      tags: [Auth]
+      summary: Check status of current session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Token is valid
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh current session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /user/me:
+    get:
+      tags: [User]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    patch:
+      tags: [User]
+      summary: Update current user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequest'
+      responses:
+        '200':
+          description: User updated successfully
+
+    delete:
+      tags: [User]
+      summary: Delete current user and all related data
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: User deleted successfully
+
+  /artists:
+    post:
+      tags: [Artist]
+      summary: Create new artist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Artist created successfully
+
+  /artists/my:
+    get:
+      tags: [Artist]
+      summary: Get my artists
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of user's artists
+
+  /artists/liked:
+    get:
+      tags: [Artist]
+      summary: Get liked artists
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of liked artists
+
+  /artists/{id}:
+    get:
+      tags: [Artist]
+      summary: Get artist info
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Artist information
+
+    delete:
+      tags: [Artist]
+      summary: Delete artist and related data
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Artist deleted successfully
+
+  /artists/{id}/like:
+    post:
+      tags: [Artist]
+      summary: Like artist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Artist liked/unliked successfully
+
+  /artists/{id}/wave:
+    get:
+      tags: [Artist]
+      summary: Build recommended tracks for artist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of recommended tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackDTO'
+
+  /artists/{id}/stats:
+    get:
+      tags: [Artist]
+      summary: Get listening statistics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Artist statistics
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ArtistStatsRegular'
+                  - $ref: '#/components/schemas/ArtistStatsOwner'
+
+  /artists/{id}/albums:
+    get:
+      tags: [Artist]
+      summary: Get artist's albums
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of artist's albums
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlbumDTO'
+
+    post:
+      tags: [Artist]
+      summary: Create new album for artist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                year:
+                  type: integer
+                type:
+                  type: string
+                  enum: [single, album]
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Album created successfully
+
+  /artists/{id}/popular:
+    get:
+      tags: [Artist]
+      summary: Get popular tracks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of popular tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackDTO'
+
+  /albums/liked:
+    get:
+      tags: [Album/Track]
+      summary: Get liked albums
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of liked albums
+
+  /albums/{id}:
+    get:
+      tags: [Album/Track]
+      summary: Get album data
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Album information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumDTO'
+
+    patch:
+      tags: [Album/Track]
+      summary: Update album
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlbumUpdateRequest'
+      responses:
+        '200':
+          description: Album updated successfully
+
+    delete:
+      tags: [Album/Track]
+      summary: Delete album and tracks
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Album deleted successfully
+
+  /albums/{id}/like:
+    post:
+      tags: [Album/Track]
+      summary: Like album
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Album liked/unliked successfully
+
+  /albums/{id}/listens:
+    get:
+      tags: [Album/Track]
+      summary: Get album listening stats
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Album listening statistics
+
+  /albums/{id}/wave:
+    get:
+      tags: [Album/Track]
+      summary: Build recommended tracks for album
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of recommended tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackDTO'
+
+  /albums/{id}/publish:
+    post:
+      tags: [Album/Track]
+      summary: Send album to moderation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Album sent to moderation
+
+  /albums/{id}/tracks:
+    post:
+      tags: [Album/Track]
+      summary: Create new track
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                genres:
+                  type: string
+                audio:
+                  type: string
+                  format: binary
+                duration:
+                  type: integer
+      responses:
+        '201':
+          description: Track created successfully
+
+  /tracks/{id}:
+    get:
+      tags: [Album/Track]
+      summary: Get track metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Track information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackDTO'
+
+  /tracks/{id}/stream:
+    get:
+      tags: [Album/Track]
+      summary: Get track file
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Track file
+          content:
+            audio/*:
+              schema:
+                type: string
+                format: binary
+
+  /tracks/{id}/listening:
+    post:
+      tags: [Album/Track]
+      summary: Register Listening
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Listening registered
+
+  /albums/moderation:
+    get:
+      tags: [Moderation]
+      summary: Get unapproved albums
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: artistId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of albums for moderation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlbumDTO'
+
+  /albums/{id}/moderate:
+    post:
+      tags: [Moderation]
+      summary: Moderate album
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationRequest'
+      responses:
+        '200':
+          description: Album moderated successfully
+
+  /playlists:
+    post:
+      tags: [Playlist]
+      summary: Create new playlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                isPublic:
+                  type: integer
+                  enum: [0, 1]
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Playlist created successfully
+
+  /playlists/my:
+    get:
+      tags: [Playlist]
+      summary: Get user's playlists
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of user's playlists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaylistDTO'
+
+  /playlists/{id}/tracks:
+    get:
+      tags: [Playlist]
+      summary: Get playlist track list
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of tracks in playlist
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackDTO'
+
+  /playlists/{id}/wave:
+    get:
+      tags: [Playlist]
+      summary: Get recommended tracks for playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of recommended tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackDTO'
+
+  /playlists/{id}:
+    patch:
+      tags: [Playlist]
+      summary: Update playlist metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                isPublic:
+                  type: integer
+                  enum: [0, 1]
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Playlist updated successfully
+
+    delete:
+      tags: [Playlist]
+      summary: Delete playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Playlist deleted successfully
+
+  /playlists/{id}/tracks/{trackId}:
+    patch:
+      tags: [Playlist]
+      summary: Push track to playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: trackId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Track added to playlist
+
+    delete:
+      tags: [Playlist]
+      summary: Remove track from playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: trackId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Track removed from playlist
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        login:
+          type: string
+        likedArtists:
+          type: array
+          items:
+            type: string
+            format: uuid
+        likedAlbums:
+          type: array
+          items:
+            type: string
+            format: uuid
+        likedPlaylistId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        role:
+          type: integer
+          enum: [0, 1, 2]
+
+    RegisterRequest:
+      type: object
+      required: [email, login, password]
+      properties:
+        email:
+          type: string
+        login:
+          type: string
+        password:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    UpdateRequest:
+      type: object
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+
+    ArtistStatsRegular:
+      type: object
+      properties:
+        listens_month:
+          type: integer
+
+    ArtistStatsOwner:
+      type: object
+      properties:
+        listens_month:
+          type: integer
+        albums:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              listens_month:
+                type: integer
+
+    AlbumDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        artistId:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        year:
+          type: integer
+        cover:
+          type: string
+        type:
+          type: string
+          enum: [single, album]
+        isPublic:
+          type: boolean
+        isApproved:
+          type: boolean
+        moderation:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [pending, approved, rejected]
+            comment:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        count:
+          type: integer
+        duration:
+          type: integer
+        artistName:
+          type: string
+        artistAvatar:
+          type: string
+
+    AlbumUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        year:
+          type: integer
+        type:
+          type: string
+          enum: [single, album]
+        isPublic:
+          type: boolean
+
+    ModerationRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected]
+        comment:
+          type: string
+
+    PlaylistDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        cover:
+          type: string
+        isPublic:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        ownerInfo:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+
+    TrackDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        albumId:
+          type: string
+          format: uuid
+        artistId:
+          type: string
+          format: uuid
+        albumName:
+          type: string
+        artistName:
+          type: string
+        cover:
+          type: string
+        duration:
+          type: integer
+        genres:
+          type: array
+          items:
+            type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
