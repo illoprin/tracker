@@ -31,12 +31,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if !request.DecodeJSONBody(w, r, &req) {
 		return
 	}
+
 	// validate struct
 	if !request.ValidateBody(w, r, h.v, req) {
 		return
 	}
+
 	// execute service function
-	token, err := h.s.Login(r.Context(), req)
+	accessToken, refreshToken, err := h.s.Login(r.Context(), req)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			render.Status(r, http.StatusNotFound)
@@ -48,8 +50,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, response.Error(err.Error()))
 		return
 	}
+
 	// return result
-	render.JSON(w, r, map[string]string{"token": token})
+	res := map[string]string{
+		"access":  accessToken,
+		"refresh": refreshToken,
+	}
+	render.JSON(w, r, res)
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {

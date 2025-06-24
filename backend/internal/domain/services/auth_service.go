@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
+	"tracker-backend/internal/config"
 	"tracker-backend/internal/domain/dtos"
 	"tracker-backend/internal/domain/repository/schemas"
 	"tracker-backend/internal/domain/utils"
@@ -66,13 +68,13 @@ func getSessionIdCacheKey(sessionId string) string {
 	return fmt.Sprintf("session:%s", sessionId)
 }
 
-func createToken(user *schemas.User, sessionId string) (string, error) {
+func createToken(user *schemas.User, sessionId string, duration time.Duration) (string, error) {
 	claims := authToken.JWTClaims{
 		UserID:    user.ID,
 		SessionID: sessionId,
 		Role:      user.Role,
 	}
-	token, err := authToken.CreateTokenFromClaims(claims)
+	token, err := authToken.CreateTokenFromClaims(claims, duration)
 	return token, err
 }
 
@@ -145,7 +147,7 @@ func (svc *AuthorizationService) Register(ctx context.Context, req dtos.Register
 func (svc *AuthorizationService) Login(
 	ctx context.Context,
 	req dtos.LoginRequest,
-) (string, error) {
+) (string, string, error) {
 	// configure _logger
 	_logger := slog.With(slog.String("func", "services.AuthorizationService.Login"))
 
@@ -154,34 +156,43 @@ func (svc *AuthorizationService) Login(
 	err := svc.userCol.FindOne(ctx, bson.M{"login": req.Login}).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return "", service.ErrNotFound
+			return "", "", service.ErrNotFound
 		}
 		_logger.Error("failed to find user", logger.ErrorAttr(err))
-		return "", service.ErrInternal
+		return "", "", service.ErrInternal
 	}
 
 	// validate password
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
-		return "", service.ErrInvalidPassword
+		return "", "", service.ErrInvalidPassword
 	}
 
-	// create token
+	// create access token
 	sessionId := uuid.NewString()
-	token, err := createToken(&user, sessionId)
+	accessTokenDuration, _ := time.ParseDuration(os.Getenv(config.TokenLifetimeEnvName))
+	accessToken, err := createToken(&user, sessionId, accessTokenDuration)
 	if err != nil {
 		_logger.Error("failed to create token", logger.ErrorAttr(err))
-		return "", service.ErrInternal
+		return "", "", service.ErrInternal
+	}
+
+	// create refresh token
+	refreshTokenDuration := time.Hour * 24 * 30
+	refreshToken, err := createToken(&user, sessionId, refreshTokenDuration)
+	if err != nil {
+		_logger.Error("failed to create token", logger.ErrorAttr(err))
+		return "", "", service.ErrInternal
 	}
 
 	// create session
 	key := getSessionIdCacheKey(sessionId)
-	err = svc.s.SetStringTTL(ctx, key, token, sessionTTL)
+	err = svc.s.SetStringTTL(ctx, key, accessToken, sessionTTL)
 	if err != nil {
 		_logger.Warn("failed to set string", logger.ErrorAttr(err))
 	}
 
-	return token, nil
+	return accessToken, refreshToken, nil
 }
 
 // Verify returns false if session is invalid
@@ -241,7 +252,8 @@ func (svc *AuthorizationService) Refresh(
 
 	// create new token
 	newSessionId := uuid.NewString()
-	newToken, err := createToken(user, newSessionId)
+	accessTokenDuration, _ := time.ParseDuration(os.Getenv(config.TokenLifetimeEnvName))
+	newToken, err := createToken(user, newSessionId, accessTokenDuration)
 	if err != nil {
 		_logger.Error("failed to create token", logger.ErrorAttr(err))
 		return "", service.ErrInternal

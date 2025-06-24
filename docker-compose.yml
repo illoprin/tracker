@@ -48,15 +48,15 @@ services:
       retries: 5
       start_period: 5s
 
-  frontend:
-    container_name: tracker-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-      network: host
-    ports:
-      - '80:80'
-    volumes:
-      - ./frontend:/app
-    depends_on:
-      - backend
+  # frontend:
+  #   container_name: tracker-frontend
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile.dev
+  #     network: host
+  #   ports:
+  #     - '80:80'
+  #   volumes:
+  #     - ./frontend:/app
+  #   depends_on:
+  #     - backend

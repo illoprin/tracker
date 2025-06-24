@@ -14,17 +14,13 @@ type JWTClaims struct {
 	Role      int
 }
 
-func CreateTokenFromClaims(c JWTClaims) (string, error) {
-	exp, err := time.ParseDuration(os.Getenv(config.TokenLifetimeEnvName))
-	if err != nil {
-		return "", err
-	}
+func CreateTokenFromClaims(c JWTClaims, duration time.Duration) (string, error) {
 
 	claims := jwt.MapClaims{
 		"id":      c.UserID,
 		"role":    c.Role,
 		"session": c.SessionID,
-		"exp":     time.Now().Add(exp).Unix(),
+		"exp":     time.Now().Add(duration).Unix(),
 	}
 
 	token := jwt.NewWithClaims(

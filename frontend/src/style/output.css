@@ -797,6 +797,10 @@ select {
   top: 50%;
 }
 
+.float-start {
+  float: inline-start;
+}
+
 .mx-8 {
   margin-left: 2rem;
   margin-right: 2rem;
@@ -1178,6 +1182,10 @@ select {
 
 .stroke-secondary {
   stroke: #838E99;
+}
+
+.stroke-background-light {
+  stroke: #1B2127;
 }
 
 .p-2 {

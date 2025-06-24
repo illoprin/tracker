@@ -13,6 +13,7 @@ var (
 )
 
 var (
+	SwaggerUIDir       = "swagger-ui"
 	AudioDir           = "audio"
 	CoversDir          = "covers"
 	AvatarsDir         = "avatars"

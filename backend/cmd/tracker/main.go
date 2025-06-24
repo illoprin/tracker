@@ -77,6 +77,12 @@ func main() {
 	)
 	r.Handle("/public/*", fsHandler)
 
+	// configure swagger docs
+	r.Handle("/api/v1/docs", http.RedirectHandler("/api/v1/docs/", http.StatusMovedPermanently))
+	swaggerFS := http.FileServer(http.Dir(config.SwaggerUIDir))
+	swaggerHandler := http.StripPrefix("/api/v1/docs/", swaggerFS)
+	r.Handle("/api/v1/docs/*", swaggerHandler)
+
 	// configure server
 	server := http.Server{
 		Handler: r,
