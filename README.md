@@ -1,25 +1,50 @@
-# 🎸 Tracker - сервис для прослушивания музыки
+[Russian Version](README.ru.md) | [English Version](README.md)
 
-## 💡 Идея
+# 🎸 Tracker - Music Streaming Service
 
-**Tracker** - альманах личных музыкальных предпочтений. Приложение для т.н. "музыкальных интровертов", где каждый может дополнять существующую музыкальную библиотеку
+## 📃 Table of Contents
 
-## ✨ Основные фичи
+- [Project Idea](#idea)
+- [Key Features](#features)
+- [Result](#result)
+- [Local Setup](#run)
 
-- **Рекомендательная система**
+<a name="idea"></a> 
+
+## 💡 Idea
+
+**Tracker** is a chronicle of personal music preferences. An app for so-called "musical introverts," where anyone can expand the existing music library.
+
+<a name="features"></a> 
+
+## ✨ Key Features
+
+- **Recommendation System**  
   
-  Все треки на главной странице, на странице любого исполнителя и в альбомах выбраны и отсортированы таким образом, чтобы соответствовать музыкальным предпочтениям конкретного пользователя
+  All tracks on the homepage, artist pages, and albums are selected and sorted to match the musical preferences of each individual user.
 
-- **Нет границ между слушателем и исполнителем**
+- **No Boundaries Between Listener and Artist**  
   
-  Каждый может загружать свои песни, зарегистрировав профиль исполнителя. Пользователью предоставляется возможность видеть широкую статистику по прослушиваниям, аудитории и популярности его треков
+  Anyone can upload their songs by registering an artist profile. Users gain access to detailed statistics on plays, audience, and the popularity of their tracks.
 
-### 💪 Дополнительные конкурентные преимущества
+<a name="result"></a> 
 
-- **Интерфейс веб-приложения**
-  
-  Интерфейс веб-приложения разительно отличается от конкурентов, вроде Spotify или Yandex.Music. UX продуман таким образом, чтобы пользователь мог находить нужную информацию и библиотеки песен с минимальными затруднениями. **Интерфейс интуитивно понятен**
+## ❗ Result
 
-## ☝️ Цель
+As of now, the API functionality has been fully implemented.
 
-Создать MVP веб-приложения для прослушивания музыки
+You can explore the endpoints either in [SwaggerUI](localhost:8000/api/v1/docs) or in the [ENDPOINTS.md](https://github.com/illoprin/tracker/blob/master/ENDPOINTS.md) file.
+
+<a name="run"></a> 
+
+## ▶️ Local Setup
+
+You can run the web app in development mode (with hot-reload) using Docker:
+
+```bash
+git clone https://github.com/illoprin/tracker.git  
+cd tracker  
+docker compose up -d --build  
+```
+
+The API will be available at **localhost:8000**

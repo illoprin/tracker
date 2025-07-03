@@ -10,6 +10,9 @@ COPY .env go.mod go.sum .
 
 RUN go mod download
 
-EXPOSE 8000
+COPY . .
 
-CMD ["go", "run", "./cmd/tracker/main.go"]
+# build app
+RUN go build -o ./dist/app ./cmd/tracker/main.go
+
+EXPOSE 8000

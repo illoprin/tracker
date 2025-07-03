@@ -1,4 +1,4 @@
-function DownChevron({...props}) {
+function DownChevron({ ...props }) {
   return (
     <svg
       {...props}

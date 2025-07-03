@@ -19,5 +19,3 @@ RUN go install github.com/air-verse/air@latest
 COPY .air.toml .
 
 EXPOSE 8000
-
-# CMD ["go", "run", "./src/main.go"]

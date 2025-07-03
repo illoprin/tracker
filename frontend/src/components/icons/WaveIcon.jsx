@@ -1,7 +1,7 @@
 function WaveIcon({ ...props }) {
   return (
     <svg
-      {...props}      
+      {...props}
       width="26"
       height="20"
       viewBox="0 0 26 20"
