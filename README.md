@@ -4,10 +4,47 @@
 
 ## 📃 Table of Contents
 
+- [Screenshots](#screenshots)
 - [Project Idea](#idea)
 - [Key Features](#features)
 - [Result](#result)
 - [Local Setup](#run)
+
+<a name="screenshots"></a> 
+
+## 🖼️ Screenshots
+
+**Home page**
+
+![Image](https://github.com/user-attachments/assets/acf37b82-592b-4848-becf-9f470288e478)
+
+**Registration form**
+
+![Image](https://github.com/user-attachments/assets/f12d4ade-f6de-4833-a017-51a6e2e8e049)
+
+**Artist page**
+
+![Image](https://github.com/user-attachments/assets/5c62f55c-787f-4a72-a071-8d4656b18a6c)
+
+**Album page**
+
+![Image](https://github.com/user-attachments/assets/ae96145a-32bf-49a0-a640-f94d3654083e)
+
+**New artist form**
+
+![Image](https://github.com/user-attachments/assets/9dad0157-78c0-4d27-8c99-a720f1e07af8)
+
+**New album form**
+
+![Image](https://github.com/user-attachments/assets/64f0f9da-d910-45ce-91cd-b6f7136db6c9)
+
+**Album edit page**
+
+![Image](https://github.com/user-attachments/assets/4d41f725-9fd4-4353-8801-c8e28b174843)
+
+**Moderation page**
+
+![Image](https://github.com/user-attachments/assets/703f6259-851a-46f9-b57d-1feef58720e3)
 
 <a name="idea"></a> 
 
